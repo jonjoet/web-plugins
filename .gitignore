@@ -1,0 +1,6 @@
+.codex/
+.claude/
+
+node_modules/
+dist/
+config.js
