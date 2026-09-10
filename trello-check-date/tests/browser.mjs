@@ -37,7 +37,7 @@ const card = { id: id('b'), name: 'Synthetic card', url: 'https://trello.com/c/f
     state: 'incomplete', due: '2026-01-01T00:00:00Z' }] }] };
 
 async function fixture({ returning = false, denial = '', storage = false, apiStatus = 0,
-  malformed = false, listsClosed = true, items, boardSet = [board] } = {}) {
+  malformed = false, listsClosed = true, items, boardSet = [board], navigationFailure = '' } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   const logs = [];
@@ -46,9 +46,17 @@ async function fixture({ returning = false, denial = '', storage = false, apiSta
   await context.route('https://p.trellocdn.com/power-up.min.js', route => route.fulfill({
     contentType: 'text/javascript', body: `
       window.calls = []; window.token = ${returning ? JSON.stringify(canary) : 'null'};
+      window.navigationFailure = ${JSON.stringify(navigationFailure)};
       window.TrelloPowerUp = {
         initialize(caps, options) { window.caps = caps; window.initOptions = options; },
-        iframe(options) { window.iframeOptions = options; return { getRestApi: async () => ({
+        iframe(options) { window.iframeOptions = options; return {
+          navigate(options) {
+            window.calls.push({navigate: options, active: navigator.userActivation.isActive});
+            if (window.navigationFailure === 'throw') throw new Error('private navigation error');
+            if (window.navigationFailure === 'reject') return Promise.reject(new Error('private navigation error'));
+            return Promise.resolve();
+          },
+          getRestApi: async () => ({
           getToken: async () => { if (${storage}) throw new Error('private SDK error'); return window.token; },
           clearToken: async () => { window.calls.push('clear'); window.token = null; },
           authorize(options) {
@@ -289,6 +297,7 @@ try {
       await daysSort.click();
       assert.deepEqual(await page.locator('tbody tr td:last-child').allTextContents(), ['2', '10']);
       const link = rows.first().getByRole('link');
+      assert.equal(await link.innerText(), 'Open in new tab');
       assert.equal(await link.getAttribute('href'), card.url);
       assert.equal(await link.getAttribute('target'), '_blank');
       assert.equal(await link.getAttribute('rel'), 'noopener noreferrer');
@@ -302,6 +311,70 @@ try {
       assert.equal(await page.locator('#scan-summary').innerText(), before);
     });
   const secondBoard = { id: id('f'), name: 'Second board', closed: false };
+  for (const otherBoard of [false, true]) {
+    await scenario(`card actions use SDK navigation and an isolated new tab (${otherBoard ? 'other' : 'current'} board)`,
+      { returning: true, listsClosed: false, boardSet: [board, secondBoard] },
+      async ({ page, context, requests }) => {
+        await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+        await page.locator('#board').selectOption(otherBoard ? secondBoard.id : board.id);
+        await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+        await page.locator('#scan-results').waitFor({ state: 'visible' });
+        const row = page.locator('tbody tr').first();
+        assert.equal(await row.getByRole('link', { name: card.name, exact: true }).count(), 0);
+        const here = row.getByRole('button', { name: `Open here: ${card.name}`, exact: true });
+        const newTab = row.getByRole('link', { name: `Open in new tab: ${card.name}`, exact: true });
+        for (const control of [here, newTab]) {
+          assert.ok((await control.boundingBox()).height >= 44);
+        }
+        const requestCount = requests.length;
+        await here.focus();
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(() => window.calls.some(call => call.navigate));
+        const call = await page.evaluate(() => window.calls.find(call => call.navigate));
+        assert.deepEqual(call, { navigate: { url: card.url }, active: true });
+        assert.equal(context.pages().length, 1, 'Open here must not create another tab');
+        assert.equal(requests.length, requestCount, 'Navigation makes no app REST request');
+        assert.equal(await here.isEnabled(), true);
+        await context.route('https://trello.com/c/fixture', route => {
+          assert.equal(route.request().headers().referer, undefined);
+          return route.fulfill({ contentType: 'text/html', body: '<title>Synthetic Trello card</title>' });
+        });
+        const popupPromise = page.waitForEvent('popup');
+        await newTab.focus();
+        await page.keyboard.press('Enter');
+        const popup = await popupPromise;
+        await popup.waitForLoadState();
+        assert.equal(popup.url(), card.url);
+        assert.equal(await popup.evaluate(() => window.opener), null);
+        assert.equal(page.url(), `${origin}${base}apps/overdue-checklist/view.html`);
+        await popup.close();
+        if (!otherBoard) {
+          await page.screenshot({ path: resolve(output, 'synthetic-card-actions-mobile.png'), fullPage: true });
+          await page.setViewportSize({ width: 1280, height: 1100 });
+          await page.screenshot({ path: resolve(output, 'synthetic-card-actions-desktop.png'), fullPage: true });
+        }
+      });
+  }
+  for (const navigationFailure of ['throw', 'reject']) {
+    await scenario(`navigation ${navigationFailure} is sanitized and retryable without losing scan results`,
+      { returning: true, listsClosed: false, navigationFailure }, async ({ page }) => {
+        await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+        await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+        await page.locator('#scan-results').waitFor({ state: 'visible' });
+        const here = page.getByRole('button', { name: `Open here: ${card.name}`, exact: true });
+        await here.click();
+        await page.getByText('Could not open this card here.', { exact: false }).waitFor();
+        assert.equal(await here.isEnabled(), true);
+        assert.equal(await page.locator('tbody tr').count(), 1);
+        assert.equal(await page.locator('#scan-coverage').isVisible(), true);
+        assert.doesNotMatch(await page.locator('body').innerText(), /private navigation error/);
+        await page.evaluate(() => { window.navigationFailure = ''; });
+        await here.click();
+        assert.equal(await page.locator('.card-navigation-error').innerText(), '');
+        assert.equal(await page.evaluate(() => window.calls.filter(call => call.navigate).length), 2);
+        assert.equal(await page.evaluate(() => window.calls.includes('clear')), false);
+      });
+  }
   await scenario('explicit board selection reads only that board and refresh reuses board cache',
     { returning: true, listsClosed: false, boardSet: [board, secondBoard] }, async ({ page, requests }) => {
       await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);

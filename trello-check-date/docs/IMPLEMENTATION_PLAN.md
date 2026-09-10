@@ -33,6 +33,13 @@ undated Due and non-overdue Days overdue cells show a dash. Selected/all-board
 controls and integration diagnostics remain. These filters do not close any
 pending completeness or live archive/fallback acceptance gate.
 
+The v0.2.1 follow-up replaces linked card names with plain names and two controls:
+Open here uses Trello's `t.navigate({ url })` for the existing tab, including
+cross-board card URLs; Open in new tab retains a validated link with
+`noopener noreferrer`. Navigation errors stay local to the row and allow retry.
+The user confirmed v0.2.0 working on their board; SDK navigation from the modal
+still needs live confirmation after deployment. No new REST endpoints or scopes.
+
 ## 1. Outcome and scope
 
 Build a personal Trello Power-Up whose board button opens a fullscreen view of
@@ -257,8 +264,9 @@ Retry reruns the scan; a board-list failure is a global error.
 Render Item, Card, Board, Due, and Days overdue in a sortable accessible table.
 Use text rendering for Trello-controlled names, keyboard-operable sort buttons,
 `aria-sort`, readable focus states, and a horizontally scrollable narrow layout.
-Validate card-link destinations as Trello HTTPS URLs and open them outside the
-iframe using a new tab with `noopener noreferrer`. Include a count summary,
+Validate card destinations as Trello HTTPS URLs. Show plain card names with
+Open here (Trello SDK navigation) and Open in new tab (`noopener noreferrer`)
+controls, both keyboard-accessible. Include a count summary,
 last-completed time, and Refresh control. The board button uses contrasting icon
 variants and opens `t.modal({ fullscreen: true, ... })`. [S9, S10]
 

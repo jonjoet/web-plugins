@@ -156,8 +156,12 @@ the Git root's `.github/workflows/`.
      *Days overdue*. Default sort in every mode: due ascending, most overdue first,
      then soonest upcoming, with undated items last. Mode changes reset this sort.
      Undated Due and non-overdue Days overdue cells show a dash. Blank numeric
-     cells remain last in either sort direction. *Card* links to the card
-     (open in Trello). Headings, captions and counts reflect the display mode.
+     cells remain last in either sort direction. *Card* shows its plain name
+     followed by **Open here** and **Open in new tab** controls. The former uses
+     `t.navigate({ url })` to navigate the existing Trello tab, including cards
+     on another board; the latter uses a validated link with `noopener noreferrer`.
+     If SDK navigation fails, show a sanitized row-level message and allow retry
+     or the new-tab option. Headings, captions and counts reflect the display mode.
    - **Empty state**, only after a complete scan: "Nothing overdue 🎉". **Error state**: human-readable message +
      a retry button. **Loading state**: spinner/skeleton while fetching.
 

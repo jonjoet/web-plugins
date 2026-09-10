@@ -8,7 +8,7 @@ const columns = [
 ];
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
-export function createResultsView(root) {
+export function createResultsView(root, { openHere }) {
   function element(tag, text, className) {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -97,12 +97,28 @@ export function createResultsView(root) {
       const tr = element('tr');
       const item = element('td', row.itemName);
       item.append(element('small', row.checklistName, 'checklist-name'));
-      const card = element('td');
-      const link = element('a', row.cardName);
-      link.href = cardUrl(row.cardUrl);
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      card.append(link);
+      const card = element('td', row.cardName);
+      const url = cardUrl(row.cardUrl);
+      const actions = element('div', undefined, 'card-actions');
+      const here = element('button', 'Open here', 'secondary');
+      here.type = 'button';
+      here.setAttribute('aria-label', `Open here: ${row.cardName}`);
+      const newTab = element('a', 'Open in new tab', 'button-link secondary');
+      newTab.href = url;
+      newTab.target = '_blank';
+      newTab.rel = 'noopener noreferrer';
+      newTab.setAttribute('aria-label', `Open in new tab: ${row.cardName}`);
+      const error = element('small', '', 'card-navigation-error');
+      error.setAttribute('role', 'status');
+      here.addEventListener('click', async () => {
+        here.disabled = true;
+        error.textContent = '';
+        try { await openHere(url); }
+        catch { error.textContent = 'Could not open this card here. Try again or use Open in new tab.'; }
+        finally { here.disabled = false; }
+      });
+      actions.append(here, newTab);
+      card.append(actions, error);
       const due = element('td', row.due === null ? '—' : undefined);
       if (row.due !== null) {
         const instant = element('time', dateFormat.format(row.due));

@@ -11,7 +11,9 @@ const ids = ['status', 'authorize', 'retry', 'cancel-auth', 'disconnect', 'probe
   'board', 'probe', 'reload-boards', 'cancel', 'progress', 'report', 'report-details',
   'scan', 'scan-all', 'scan-refresh', 'scan-cancel', 'scan-progress', 'scan-results'];
 const ui = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
-const results = createResultsView(ui['scan-results']);
+const results = createResultsView(ui['scan-results'], {
+  openHere: url => window.TrelloPowerUp.iframe().navigate({ url }),
+});
 let auth;
 let api;
 let scanner;

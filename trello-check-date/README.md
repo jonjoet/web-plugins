@@ -3,7 +3,7 @@
 A personal, read-only Trello Power-Up for active checklist items across open
 boards, open lists, and open cards, for all assignees.
 
-**v0.2.0: active checklist display filters.** The board button opens a fullscreen
+**v0.2.1: card navigation choices and active checklist filters.** The board button opens a fullscreen
 view with SDK authorization, selected-board and all-board scan controls, and the
 original counts-only integration check. The table offers all active, dated, and overdue observations;
 it does not yet certify collection completeness. A single-board live check confirmed the original
@@ -30,8 +30,11 @@ After connecting, choose a board and click **Scan selected board**, or use
 Completed checklist items and archived boards, lists and cards are excluded in
 every mode. Changing modes uses the last scan without new Trello requests, resets
 sorting to due ascending (oldest first, undated last), and preserves the scan's
-frozen time. Sort any table column using its header button; card links open
-in a new tab. Dates use your local timezone, and Days overdue counts elapsed
+frozen time. Sort any table column using its header button. Each plain card name
+has **Open here** and **Open in new tab** controls. Open here navigates the current
+Trello tab to the parent card; opening in a new tab keeps the results available.
+Both work with keyboard activation. If Open here fails, retry or use the new-tab
+option. Dates use your local timezone, and Days overdue counts elapsed
 24-hour periods, with `<1` for less than a day. A dash means no due date or not
 overdue at scan start; blank numeric cells stay last in either sort direction.
 **Refresh results** keeps the selected display mode and reruns the last
@@ -48,6 +51,10 @@ and all its rows are withheld, including its other overdue items. This protectio
 also applies when the duplicate is undated or upcoming and hidden by the selected
 display mode. **Refresh results** retries the scan. This cross-board duplicate
 case does not arise in a selected-board scan.
+
+Open here uses the SDK's [Trello navigation API](https://developer.atlassian.com/cloud/trello/power-ups/ui-functions/navigation/).
+Synthetic browser checks verify that request and the separate new-tab behavior;
+navigation from the real Trello modal still needs live confirmation.
 
 **Start here:** [Step-by-step GitHub Pages and Trello setup](SETUP.md), with the
 exact URLs and settings for `jonjoet/web-plugins`. This route needs only a browser.

@@ -9,10 +9,11 @@ p { margin: 0 0 18px; }
 .scope, .footnote { font-size: .9rem; color: #44546f; }
 .panel { padding: 24px; margin: 24px 0; border: 1px solid #d5dbe3; border-radius: 12px; background: #fff; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0 0; }
-button, select { font: inherit; border-radius: 5px; min-height: 44px; }
-button { border: 1px solid transparent; background: #0c66e4; color: #fff; padding: 8px 16px; cursor: pointer; font-weight: 600; }
-button:hover { background: #0055cc; }
-button.secondary { color: #172b4d; background: #e9edf2; }
+button, select, .button-link { font: inherit; border-radius: 5px; min-height: 44px; }
+button, .button-link { border: 1px solid transparent; background: #0c66e4; color: #fff; padding: 8px 16px; cursor: pointer; font-weight: 600; }
+button:hover, .button-link:hover { background: #0055cc; }
+button.secondary, .button-link.secondary { color: #172b4d; background: #e9edf2; }
+.button-link { display: inline-flex; align-items: center; text-decoration: none; }
 button:disabled { opacity: .55; cursor: default; }
 button:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible, .table-scroll:focus-visible { outline: 3px solid #388bff; outline-offset: 3px; }
 label { display: block; margin-bottom: 8px; font-weight: 600; }
@@ -29,7 +30,11 @@ th button:hover { background: #e9edf2; }
 th[aria-sort="ascending"] button::after { content: ' ↑'; }
 th[aria-sort="descending"] button::after { content: ' ↓'; }
 td:first-child { min-width: 190px; }
+td:nth-child(2) { min-width: 180px; }
 td:nth-child(4) { min-width: 160px; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.card-actions button, .card-actions .button-link { padding: 6px 10px; font-size: .85rem; }
+.card-navigation-error { display: block; margin-top: 4px; }
 a { color: #0c66e4; }
 .checklist-name { display: block; color: #44546f; margin-top: 4px; }
 summary { cursor: pointer; font-weight: 600; }
@@ -41,7 +46,7 @@ pre { font-size: .85rem; overflow-x: auto; background: #f4f6f8; padding: 16px; }
   .panel { background: #22272b; border-color: #454f59; }
   .eyebrow, .scope, .footnote { color: #b6c2cf; }
   pre { background: #1d2125; }
-  button.secondary { background: #38414a; color: #dee4ea; }
+  button.secondary, .button-link.secondary { background: #38414a; color: #dee4ea; }
   .notice { background: #332e1b; color: #f5cd47; border-color: #d97008; }
   th, td { border-color: #454f59; }
   th button:hover { background: #38414a; }
