@@ -42,6 +42,13 @@ The completeness notice remains visible even when every requested board returned
 valid data. Zero observed rows are not presented as a complete "Nothing overdue"
 result. No additional setup or second test board is required to use the preview.
 
+During an all-board scan, a card moved between board reads can appear twice.
+If an active item is seen on a second board, that board is reported as failed
+and all its rows are withheld, including its other overdue items. This protection
+also applies when the duplicate is undated or upcoming and hidden by the selected
+display mode. **Refresh results** retries the scan. This cross-board duplicate
+case does not arise in a selected-board scan.
+
 **Start here:** [Step-by-step GitHub Pages and Trello setup](SETUP.md), with the
 exact URLs and settings for `jonjoet/web-plugins`. This route needs only a browser.
 

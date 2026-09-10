@@ -188,6 +188,13 @@ display modes still need live use; synthetic checks do not establish live accept
 Existing installations need only reopen the modal after deployment, with no new
 key, registration or consent scope.
 
+If a card moves between boards during **Scan all boards**, the same active item
+can appear in two board reads. The second board is then reported as failed and
+all its rows are withheld, even if the duplicate is an undated or upcoming item
+hidden by the display mode. This can withhold other overdue items from that board.
+Use **Refresh results** to retry, or scan the selected board. The failure notice
+remains visible in every mode.
+
 ## Troubleshooting and revocation
 
 | Symptom | Check |
