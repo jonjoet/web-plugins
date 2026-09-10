@@ -10,6 +10,9 @@ certify an account-wide scan. Live consent, persistence, exact item projections,
 archive/join handling, and endpoint pagination must be verified before selecting
 the final fetch strategy. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md).
 
+**Start here:** [Step-by-step GitHub Pages and Trello setup](SETUP.md), with the
+exact URLs and settings for `jonjoet/web-plugins`. This route needs only a browser.
+
 ## Build and run
 
 Run these commands from `trello-check-date/`. Docker supplies Node and installs
@@ -60,8 +63,9 @@ Only publish `dist/`, never the source directory or configuration file.
 1. Choose hosting. For GitHub Pages, stage this `dist/` as `trello-check-date/`
    inside the Pages artifact. The repository is `web-plugins`, so the connector is
    `https://OWNER.github.io/web-plugins/trello-check-date/apps/overdue-checklist/connector.html`.
-   Publication and the Pages workflow are pending; the preview can also be hosted
-   on an existing static HTTPS site with the matching `APP_BASE`.
+   The included workflow publishes after the repository variables and Pages source
+   are configured; follow [SETUP.md](SETUP.md). The preview can also be hosted on
+   an existing static HTTPS site with the matching `APP_BASE`.
 2. For temporary development, forward the local port using your HTTPS tunnel
    provider. Use the tunnel's HTTPS URL plus
    `/apps/overdue-checklist/connector.html`. Add the tunnel hostname through

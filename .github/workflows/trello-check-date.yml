@@ -1,0 +1,81 @@
+name: Trello checks and Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'trello-check-date/**'
+      - '.github/workflows/trello-check-date.yml'
+  pull_request:
+    paths:
+      - 'trello-check-date/**'
+      - '.github/workflows/trello-check-date.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trello-pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Check the preview
+    runs-on: ubuntu-latest
+    container: node:22.23.2-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436
+    defaults:
+      run:
+        working-directory: trello-check-date
+    steps:
+      - uses: actions/checkout@v6
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+      - name: Configure synthetic build
+        run: npm run config
+        env:
+          TRELLO_APP_KEY: '00000000000000000000000000000000'
+      - run: npm run build
+
+  site:
+    name: Build the configured site
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.TRELLO_PAGES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    container: node:22.23.2-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436
+    defaults:
+      run:
+        working-directory: trello-check-date
+    steps:
+      - uses: actions/checkout@v6
+      - run: npm ci --no-audit --no-fund
+      - name: Configure public API key
+        run: npm run config
+        env:
+          TRELLO_APP_KEY: ${{ vars.TRELLO_APP_KEY }}
+      - run: npm run build
+      - name: Stage the Pages subfolder
+        run: |
+          mkdir -p ../_site/trello-check-date
+          cp -R dist/. ../_site/trello-check-date/
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: site
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
