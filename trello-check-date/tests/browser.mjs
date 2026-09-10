@@ -105,8 +105,16 @@ try {
     assert.equal(details.modal.fullscreen, true);
     assert.equal(details.modal.url, `${base}apps/overdue-checklist/view.html`);
     assert.equal(details.options.appName, 'Overdue Checklist Items');
-    for (const url of Object.values(details.icon)) {
+    for (const [background, ink] of [['dark', '#ffffff'], ['light', '#172b4d']]) {
+      const url = details.icon[background];
       assert.ok(url.startsWith('data:image/svg+xml') || url.startsWith(base));
+      const actualInk = await page.evaluate(async url => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Icon failed to load');
+        const svg = new DOMParser().parseFromString(await response.text(), 'image/svg+xml');
+        return svg.documentElement.getAttribute('stroke');
+      }, url);
+      assert.equal(actualInk, ink, `Icon must contrast with the ${background} board background`);
     }
   });
   await scenario('gesture auth, safe rendering, narrow view and count report', { malformed: true }, async ({ page }) => {

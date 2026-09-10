@@ -1,12 +1,13 @@
 import { TRELLO_APP_KEY } from 'virtual:trello-config';
 import { APP_NAME } from '../../shared/auth.js';
-import darkIcon from './icons/dark.svg';
-import lightIcon from './icons/light.svg';
+import navyIcon from './icons/navy.svg';
+import whiteIcon from './icons/white.svg';
 
 export function capabilities(base = import.meta.env.BASE_URL) {
   return {
     'board-buttons': () => [{
-      icon: { dark: darkIcon, light: lightIcon },
+      // Trello's keys name the board background, so use the contrasting ink.
+      icon: { dark: whiteIcon, light: navyIcon },
       text: 'Overdue items',
       callback: t => t.modal({
         fullscreen: true,
