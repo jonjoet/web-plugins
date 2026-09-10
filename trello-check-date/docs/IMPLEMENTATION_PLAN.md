@@ -242,6 +242,11 @@ variants and opens `t.modal({ fullscreen: true, ... })`. [S9, S10]
    comparison, card/list archive behavior, fallback join-miss classification, and
    collection completeness. Use existing suitable boards
    or a user-created fixture; the read-only app does not create test content.
+5. After verification, reconcile the spec's section 7 and related item-field
+   descriptions with the selected route, verified field projection, pagination
+   and exhaustion rules, and archive/join handling. Keep unresolved behavior
+   explicitly pending. This second spec update is part of the Phase 1 exit,
+   so the implementation reference reflects what the probe actually established.
 
 Exit: documented selected request strategy with verified item fields and
 completion rules, plus working authorization in the intended browser. A small
