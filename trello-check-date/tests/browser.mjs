@@ -46,10 +46,15 @@ async function fixture({ returning = false, denial = '', storage = false, apiSta
   await context.route('https://p.trellocdn.com/power-up.min.js', route => route.fulfill({
     contentType: 'text/javascript', body: `
       window.calls = []; window.token = ${returning ? JSON.stringify(canary) : 'null'};
+      window.iframeCalls = [];
       window.navigationFailure = ${JSON.stringify(navigationFailure)};
       window.TrelloPowerUp = {
         initialize(caps, options) { window.caps = caps; window.initOptions = options; },
-        iframe(options) { window.iframeOptions = options; return {
+        iframe(options) {
+          window.iframeCalls.push(options);
+          if (window.iframeClient) return window.iframeClient;
+          window.iframeOptions = options;
+          return window.iframeClient = {
           navigate(options) {
             window.calls.push({navigate: options, active: navigator.userActivation.isActive});
             if (window.navigationFailure === 'throw') throw new Error('private navigation error');
@@ -332,6 +337,9 @@ try {
         await page.waitForFunction(() => window.calls.some(call => call.navigate));
         const call = await page.evaluate(() => window.calls.find(call => call.navigate));
         assert.deepEqual(call, { navigate: { url: card.url }, active: true });
+        const config = { appKey: '0'.repeat(32), appName: 'Overdue Checklist Items' };
+        assert.deepEqual(await page.evaluate(() => window.iframeOptions), config);
+        assert.deepEqual(await page.evaluate(() => window.iframeCalls), [config, config]);
         assert.equal(context.pages().length, 1, 'Open here must not create another tab');
         assert.equal(requests.length, requestCount, 'Navigation makes no app REST request');
         assert.equal(await here.isEnabled(), true);

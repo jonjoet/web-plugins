@@ -1,5 +1,5 @@
 import { TRELLO_APP_KEY } from 'virtual:trello-config';
-import { prepareAuth, AuthError } from '../../shared/auth.js';
+import { prepareAuth, AuthError, APP_NAME } from '../../shared/auth.js';
 import { createApi } from '../../shared/trello-api.js';
 import { runProbe, validateBoards } from '../../shared/probe.js';
 import { createScanner } from '../../shared/scan.js';
@@ -12,7 +12,7 @@ const ids = ['status', 'authorize', 'retry', 'cancel-auth', 'disconnect', 'probe
   'scan', 'scan-all', 'scan-refresh', 'scan-cancel', 'scan-progress', 'scan-results'];
 const ui = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
 const results = createResultsView(ui['scan-results'], {
-  openHere: url => window.TrelloPowerUp.iframe().navigate({ url }),
+  openHere: url => window.TrelloPowerUp.iframe({ appKey: TRELLO_APP_KEY, appName: APP_NAME }).navigate({ url }),
 });
 let auth;
 let api;
