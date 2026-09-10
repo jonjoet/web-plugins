@@ -106,10 +106,9 @@ stops future deployments; it does not remove a site that is already published.
 
 ## 5. Run the first deployment
 
-Pre-deployment validation covered the CI check job and local build/staging
-commands. The first deployment also tests GitHub's artifact-upload, Pages setup,
-and publish actions for this repository. If one fails, share the failed job/run
-link: the workflow may need a fix, rather than the problem being your settings.
+GitHub Pages deployment has succeeded for this repository through v0.2.1.
+When setting up a copy or changing configuration, follow the steps below. If a
+job fails, share its run link and error message to help diagnose the failure.
 
 1. Open [Actions → Trello checks and Pages](https://github.com/jonjoet/web-plugins/actions/workflows/trello-check-date.yml).
 2. Click **Run workflow**, select **main**, and click the green **Run workflow** button.
@@ -164,7 +163,9 @@ large-board paging/exhaustion remain pending even when these checks pass.
 
 ## 8. View and filter checklist items
 
-1. Reopen the Power-Up after the updated deployment finishes.
+1. After an updated deployment finishes, reload the whole Trello board in your
+   browser, then reopen the Power-Up. Reopening only the modal leaves the
+   persistent connector running its previous code.
 2. Choose your board and click **Scan selected board**. Use **Scan all boards**
    only if you want the broader scan; no second test board is needed.
 3. The table defaults to **Overdue only**: incomplete items due before scan start.
@@ -186,12 +187,10 @@ large-board paging/exhaustion remain pending even when these checks pass.
 6. **Refresh results** keeps the display mode and reruns the same scope. **Reload board list** refreshes board
    membership and clears the current results. **Cancel scan** stops a running scan.
 
-The v0.2.0 filters were reported working on the user's board. The first Open here
-implementation left the Power-Up covering the navigation in live use. The fix
-closes it first and needs another live check; synthetic checks do not establish
-live acceptance. **Reload the Trello board in the browser after deployment**, then
-reopen the Power-Up. Reopening just the modal does not update the persistent
-connector. No new key, registration or consent scope is needed. If navigation
+The v0.2.0 filters and v0.2.1 Open here behavior were confirmed working in live
+single-board use. Open here closes the modal before opening the card. Cross-board
+navigation and broader live acceptance remain unverified; synthetic checks do
+not establish them. No new key, registration or consent scope is needed. If navigation
 fails after the modal closes, a Trello alert directs you to reopen and use
 Open in new tab.
 
@@ -212,6 +211,8 @@ remains visible in every mode.
 | Connector URL is 404 | Wait for a successful deployment and use the complete URL, including `trello-check-date/apps/overdue-checklist/connector.html`. |
 | Consent popup is blocked or cannot return | Click Authorize inside the modal; allow that popup and confirm the exact allowed origin from step 3. |
 | Modal asks for consent every time | Report the browser/version and which step failed; do not disable security features. |
+| Open here leaves the Power-Up open or reports a navigation error | Reload the whole Trello board after deployment, then reopen the Power-Up and retry. Use Open in new tab if the problem persists. |
+| Navigation fails after the Power-Up closes | Follow the Trello alert: reopen the Power-Up and use Open in new tab. |
 | A board read returns 403 | Check that your Trello account can access that board. |
 
 **Forget authorization** removes the SDK's stored token, but does not revoke it

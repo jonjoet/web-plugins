@@ -6,9 +6,9 @@ boards, open lists, and open cards, for all assignees.
 **v0.2.1: card navigation choices and active checklist filters.** The board button opens a fullscreen
 view with SDK authorization, selected-board and all-board scan controls, and the
 original counts-only integration check. The table offers all active, dated, and overdue observations;
-it does not yet certify collection completeness. A single-board live check confirmed the original
-checklist item projection, and the user reported opening the modal twice and the
-v0.1.0 overdue table working well on their board.
+it does not yet certify collection completeness. Live single-board use confirmed
+the original checklist item projection, modal reopening, the overdue table,
+the v0.2.0 display filters, and v0.2.1's Open here navigation after closing the modal.
 Archive/join classification, endpoint completeness and broader live acceptance
 remain pending. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md).
 
@@ -58,8 +58,9 @@ BroadcastChannel support for a temporary connection between the two frames;
 no token or persistent storage is involved. **Reload the Trello board once after
 updating**, then reopen the Power-Up, so both frames use the current code. If
 navigation fails after closure, a Trello alert explains how to recover.
-The original navigate-with-modal-open behavior failed in live use. Synthetic
-checks now destroy the modal iframe before navigating; this fix still needs live confirmation.
+The close-before-navigation behavior was confirmed in live use for v0.2.1.
+This single-board confirmation does not establish cross-board navigation or
+broader live acceptance.
 
 **Start here:** [Step-by-step GitHub Pages and Trello setup](SETUP.md), with the
 exact URLs and settings for `jonjoet/web-plugins`. This route needs only a browser.
@@ -199,7 +200,8 @@ modules in `shared/`; no second app or framework is included. Shared `auth.js`
 owns SDK preparation, `trello-api.js` provides bounded read-only requests, and
 `ui.js` provides sanitized messages and result summaries. `overdue.js` handles
 domain validation and normalization, `scan.js` coordinates observations, and
-`results.js` renders the sortable table. The integration probe remains separate
+`results.js` renders the sortable table. `navigation.js` coordinates modal closure
+and card navigation through the persistent connector. The integration probe remains separate
 from the overdue scan implementation.
 
 See [SECURITY.md](SECURITY.md) for credential handling and revocation.
