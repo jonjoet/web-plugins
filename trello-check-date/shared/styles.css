@@ -1,0 +1,31 @@
+:root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172b4d; background: #f4f6f8; line-height: 1.6; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 880px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: clamp(1.6rem, 5vw, 2.3rem); letter-spacing: -.035em; line-height: 1.2; margin: 12px 0 20px; }
+h2 { font-size: 1.15rem; margin-top: 0; }
+p { margin: 0 0 18px; }
+.eyebrow { font-size: .8rem; font-weight: 700; letter-spacing: .05em; color: #44546f; }
+.scope, .footnote { font-size: .9rem; color: #44546f; }
+.panel { padding: 24px; margin: 24px 0; border: 1px solid #d5dbe3; border-radius: 12px; background: #fff; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0 0; }
+button, select { font: inherit; border-radius: 5px; min-height: 44px; }
+button { border: 1px solid transparent; background: #0c66e4; color: #fff; padding: 8px 16px; cursor: pointer; font-weight: 600; }
+button:hover { background: #0055cc; }
+button.secondary { color: #172b4d; background: #e9edf2; }
+button:disabled { opacity: .55; cursor: default; }
+button:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid #388bff; outline-offset: 3px; }
+label { display: block; margin-bottom: 8px; font-weight: 600; }
+select { max-width: 100%; width: 100%; padding: 8px; color: inherit; background: inherit; border: 1px solid #8590a2; }
+#progress { margin-top: 20px; }
+summary { cursor: pointer; font-weight: 600; }
+pre { font-size: .85rem; overflow-x: auto; background: #f4f6f8; padding: 16px; }
+[hidden] { display: none !important; }
+@media (max-width: 480px) { main { padding: 24px 16px; } .panel { padding: 16px; } }
+@media (prefers-color-scheme: dark) {
+  :root { color: #dee4ea; background: #1d2125; }
+  .panel { background: #22272b; border-color: #454f59; }
+  .eyebrow, .scope, .footnote { color: #b6c2cf; }
+  pre { background: #1d2125; }
+  button.secondary { background: #38414a; color: #dee4ea; }
+}

@@ -32,8 +32,8 @@ checklist item across all of the user's boards.
 - First app fully working end-to-end, added to a board via the **Custom** tab
   (no marketplace submission).
 - Static output hostable for free on GitHub Pages, one site serving many apps.
-- Security posture: read-only scope, user token never committed and never leaves
-  the user's browser.
+- Security posture: read-only scope, user token absent from source, builds,
+  hosting, and logs. Trello's SDK manages the token in private plugin data.
 
 ## 3. Non-goals
 
@@ -56,7 +56,7 @@ verify against the linked docs in §12 if unsure.
    declaring *capabilities*. Trello loads it in a sandboxed iframe. There is no
    required server.
 2. **Registration is manual and private.** The user registers the connector URL at
-   `https://trello.com/power-ups/admin`, then enables it on a board via the board's
+   `https://trello.com/apps/admin`, then enables it on a board via the board's
    Power-Ups menu → **Custom** tab. The agent cannot do this; it must produce the
    files and tell the user exactly what to paste where.
 3. **Capabilities scoped to current board.** The Power-Up client (`t.cards`, `t.lists`,
@@ -67,39 +67,48 @@ verify against the linked docs in §12 if unsure.
    - **API key**: identifies the app, grants no data access, is **safe to be public**
      (fine to commit).
    - **User token**: grants access to the entire account, is **secret**, must
-     **never** be committed or hard-coded, and must only ever live in the user's
-     browser. If leaked, it must be revoked.
+     **never** be committed or hard-coded. Only pass it to Trello and its SDK-managed
+     private storage. If leaked, it must be revoked.
 5. **Get the token the safe way.** Initialize with the app key and use the built-in
-   REST API client, which handles the OAuth popup and stores the token in the
-   browser's `localStorage` — the token never touches source or hosting:
+   REST API client, which handles consent and stores the token in private plugin
+   data — the token never touches source or hosting. Prepare the client before
+   enabling the authorization button:
    ```js
    const t = window.TrelloPowerUp.iframe({
      appKey: TRELLO_APP_KEY,      // public, from config
      appName: "Overdue Checklist Items",
    });
-   // later, from a user gesture:
-   await t.getRestApi().authorize({ scope: "read", expiration: "never" });
-   const token = await t.getRestApi().getToken();  // null if not yet authorized
+   const client = await t.getRestApi();
+   // Later, directly from the authorization button's click handler:
+   await client.authorize({ scope: "read", expiration: "never" });
+   const token = await client.getToken();  // null if not yet authorized
    ```
    **Request `scope: "read"` only.** Never `read,write`.
+   Configure the HTTPS hosting origin in the API key's allowed origins. Verify
+   authorization and persistence on reopening under ordinary browser settings;
+   the SDK documents Chrome storage partitioning issues. Do not require disabling
+   browser security flags or treat mocked consent as live acceptance.
 6. **Checklist item due dates** live on checklist *items* (a.k.a. `checkItems`),
    not on the card. Relevant fields per checkItem: `name`, `state`
-   (`"complete"`/`"incomplete"`), `due` (ISO datetime or null), `dueComplete`,
+   (`"complete"`/`"incomplete"`), `due` (ISO datetime or null),
    `idChecklist`. **Overdue-and-incomplete** = `due != null && new Date(due) < now &&
    state === "incomplete"`.
 7. **Rate limits**: 300 requests / 10s per API key, 100 / 10s per token. With many
-   boards, fetch efficiently (see §7) and add light backoff; do not fire hundreds of
-   parallel requests.
+   boards, fetch efficiently (see §7); start at most five requests per second and
+   use three retries with exponential backoff and jitter for 429/network/5xx.
+   Member routes also have a separate limit of 100 requests per 900 seconds.
 
 ## 5. Repository layout
 
-Monorepo, plain ESM, bundled per-app. Suggested (agent may refine, keep the spirit):
+The Git root is `web-plugins/`; the application layout below is relative to
+`trello-check-date/`. Use one npm package, plain ESM, bundled per-app. The root
+`.gitignore` excludes configuration, dependencies, and build output; CI lives in
+the Git root's `.github/workflows/`.
 
 ```
 /
-├─ docs/SPEC.md                 # this file
-├─ package.json                 # workspace root; scripts: dev, build, lint
-├─ .gitignore                   # MUST ignore config.js, node_modules, dist
+├─ docs/trello-powerups-spec.md  # this file
+├─ package.json                 # scripts: dev, build, preview, lint, test
 ├─ config.example.js            # template holding the (public) appKey
 ├─ config.js                    # gitignored; real appKey (public-safe, but keep repo shareable)
 ├─ shared/
@@ -136,7 +145,7 @@ Monorepo, plain ESM, bundled per-app. Suggested (agent may refine, keep the spir
    - Renders a **sortable table**: columns = *Item*, *Card*, *Board*, *Due*,
      *Days overdue*. Default sort: most overdue first. *Card* links to the card
      (open in Trello). Show a small count summary ("14 overdue items").
-   - **Empty state**: "Nothing overdue 🎉". **Error state**: human-readable message +
+   - **Empty state**, only after a complete scan: "Nothing overdue 🎉". **Error state**: human-readable message +
      a retry button. **Loading state**: spinner/skeleton while fetching.
 
 ### Edge cases the agent must handle
@@ -144,40 +153,66 @@ Monorepo, plain ESM, bundled per-app. Suggested (agent may refine, keep the spir
 - Token revoked/expired → API returns 401 → fall back to the Authorize button.
 - Boards with zero checklist items, or checklist items with no due date → excluded
   silently.
-- Closed/archived boards → exclude (`filter=open` when listing boards).
+- Closed/archived boards, lists, and cards → exclude. A card can remain open
+  inside an archived list; inspect list `closed` state using card `idList`.
 - Timezone: `due` is absolute (UTC ISO). Compare against `Date.now()`; display in
   the user's local time.
 - Large accounts (many boards) → sequential/batched fetch with backoff, not a
   parallel flood.
+- Freeze one `now` per scan; due exactly at `now` is not overdue. Days overdue
+  counts completed elapsed 24-hour periods (`<1` for less than a day), not calendar
+  boundaries. Sort numerically; break equal due dates by board/card/item ID.
+- Include all assignees; parent-card due date and completion do not affect items.
+- Malformed data and missing collections must fail visibly. Partial scans report
+  rows found and boards not checked, never an account-wide total or empty success.
+  A board-list failure is global; a board 403 is local. A token 401 cancels the
+  scan and clears authorization; an invalid app key requires setup repair.
+- Refresh cancels the previous scan; close cancels requests; stale responses
+  cannot overwrite newer results. Cache board listings in memory with a full-refresh
+  option. Show progress and finish time. Render names as text and validate external
+  links as Trello HTTPS URLs with `noopener noreferrer`.
 
 ## 7. Trello REST API details
 
 Base: `https://api.trello.com/1`. Every request appends `key={appKey}&token={token}`.
 
-Recommended fetch strategy (minimizes requests):
+Candidate fetch strategy, pending live field and endpoint-completeness verification:
 - **List boards**: `GET /members/me/boards?filter=open&fields=name,url`
-- **Per board, cards with nested checklists** (one call per board):
+- **Per board, cards with nested checklists**, exact original projection to test:
   `GET /boards/{boardId}/cards?filter=open&fields=name,url&checklists=all&checklist_fields=name`
-  → each returned card includes `checklists[].checkItems[]` with `name`, `state`,
-  `due`, `dueComplete`.
+  Compare with omission of `checklist_fields`; do not assume either response
+  includes complete `checklists[].checkItems[]`. Required item fields are `id`,
+  `name`, `state`, and `due`. Missing arrays must fail, not become empty arrays.
+  The eventual card projection also needs `idList`, `closed`, and join fields.
 - Flatten: for each card → each checklist → each checkItem, keep if
   `due && new Date(due) < now && state === "incomplete"`, attaching card name/url
   and board name.
 
-(Alternative: `GET /boards/{id}/checklists` — but the cards-with-checklists call
-gives card name/url alongside items in one request per board, which is cleaner.)
+Both candidate strategies read `GET /boards/{id}/lists?filter=all&fields=closed`.
+Missing list references or invalid archive states make the board incomplete.
+The fallback is `GET /boards/{id}/checklists` joined to open-card metadata. Resolve
+each missing `idCard` with a bounded GET retaining `idBoard`, `idList`, and `closed`;
+exclude only a positively archived card/list. Missing open cards, moved cards,
+failed lookups, and unresolved lists make the result incomplete.
+
+The selected route, field projection, pagination order/cursor, and exhaustion
+rule remain **pending**. No one-request-per-board guarantee is made. Verify
+multiple pages and repeated cursors before claiming completeness, then update
+this section with the observed contract. A small-account shape probe alone does
+not establish pagination. See the reviewed implementation plan for the gate.
 
 ## 8. Security requirements (hard rules)
 
 - **Never** commit or hard-code a user token. `.gitignore` must exclude any file
-  that could hold one. The token lives only in browser `localStorage` via
-  `getRestApi()`.
+  that could hold one. Use the SDK's private plugin data and `clearToken()`;
+  do not add custom persistent token storage.
 - Request **`scope: "read"`** only. The app must be structurally incapable of
   writing (no write endpoints in `trello-api.js`).
 - The API key is public-safe and may be committed; still keep it in `config.js`
   (with `config.example.js` checked in) so the repo stays shareable.
-- No third-party analytics, trackers, or external network calls except to
-  `api.trello.com` and `p.trellocdn.com`.
+- No analytics or trackers. Allow the hosting origin, `api.trello.com`,
+  `p.trellocdn.com`, and Trello's required consent/sign-in flow. Application REST
+  calls go only to the fixed Trello API origin. Never log credential-bearing URLs.
 - Include a short `SECURITY.md` (or a section in the README) telling the user how to
   review/revoke the token at `https://trello.com/u/{username}/account` → Applications.
 
@@ -185,9 +220,13 @@ gives card name/url alongside items in one request per board, which is cleaner.)
 
 - `npm run build` → static files in `dist/`, laid out so each app has a stable URL
   path (e.g. `dist/apps/overdue-checklist/connector.html`).
-- Set Vite `base` to `/{repo-name}/` so GitHub Pages sub-paths resolve. The
+- Set production Vite `base` to `/web-plugins/trello-check-date/` (configurable),
+  with development at `/`. Stage `dist/` under `trello-check-date/` in Pages. The
   registered connector URL will be
-  `https://{user}.github.io/{repo}/apps/overdue-checklist/connector.html`.
+  `https://{user}.github.io/web-plugins/trello-check-date/apps/overdue-checklist/connector.html`.
+- Generate ignored `config.js` from public repository variable `TRELLO_APP_KEY`
+  using JSON serialization in deployment builds. Missing production keys fail
+  the build; CI checks use an obvious fake key. No user token is a build input.
 - **Local dev**: Trello requires an HTTPS connector URL. Provide an `npm run dev`
   that serves locally and document using an HTTPS tunnel (e.g. ngrok) to get a
   temporary URL for the admin portal. Iterating directly against a GitHub Pages
@@ -197,9 +236,11 @@ gives card name/url alongside items in one request per board, which is cleaner.)
 
 ## 10. Manual setup steps (for the human — agent should emit these, not perform them)
 
-1. Register a Power-Up at `https://trello.com/power-ups/admin` (name it, pick the
+1. Register a Power-Up at `https://trello.com/apps/admin` (name it, pick the
    workspace, set the **connector/iframe URL** to the deployed `connector.html`).
 2. In the Power-Up's **API Key** tab, generate an API key; paste it into `config.js`.
+   Add the exact deployed HTTPS origin (and any tunnel origin) to allowed origins.
+   Supply the public key as `TRELLO_APP_KEY` for CI deployment.
 3. Enable **board-buttons** capability in the admin portal.
 4. On a board → Power-Ups → **Custom** → enable this Power-Up.
 5. Click the board button → **Authorize (read-only)** once.

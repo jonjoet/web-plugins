@@ -1,6 +1,10 @@
 # Overdue Checklist Items — implementation plan
 
-Status: draft for technical review; application implementation has not started.
+Status: technical review complete; Phase 1 connection preview implemented.
+Live account verification and the Phase 1 exit gate remain outstanding. The
+preview compares field projections and reports archive/join counts; it does not
+yet resolve fallback join misses or establish pagination/exhaustion. Phases 2–4
+(complete overdue scans, table, and release workflow) remain to be implemented.
 Prepared with GPT-6 against the build spec in commit
 `dbb57908e653addb584eb3396dbc9f6121d71053`.
 
