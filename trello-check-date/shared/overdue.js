@@ -69,9 +69,16 @@ export function dueTimestamp(value) {
 }
 
 const compareId = (a, b) => a < b ? -1 : a > b ? 1 : 0;
-export function compareOverdue(a, b) {
-  return a.due - b.due || compareId(a.boardId, b.boardId)
+export function compareDue(a, b) {
+  return (a.due === null) - (b.due === null) || a.due - b.due || compareId(a.boardId, b.boardId)
     || compareId(a.cardId, b.cardId) || compareId(a.itemId, b.itemId);
+}
+
+// Rows contain active observations and elapsed time frozen at scan start.
+export function filterItems(rows, mode = 'overdue') {
+  requireShape(['all', 'dated', 'overdue'].includes(mode));
+  return rows.filter(row => mode === 'all' || (row.due !== null
+    && (mode === 'dated' || row.elapsedMs > 0)));
 }
 
 export function daysOverdue(elapsedMs) {
@@ -101,13 +108,13 @@ export function normalizeBoard({ board, cards, lists }, now) {
           && !itemIds.has(item.id));
         itemIds.add(item.id);
         const due = dueTimestamp(item.due);
-        if (item.state !== 'incomplete' || due === null || due >= now) continue;
+        if (item.state !== 'incomplete') continue;
         rows.push({ itemId: item.id, itemName: item.name,
           checklistId: checklist.id, checklistName: checklist.name,
           cardId: card.id, cardName: card.name, cardUrl: url,
-          boardId: board.id, boardName: board.name, due, elapsedMs: now - due });
+          boardId: board.id, boardName: board.name, due, elapsedMs: due === null ? null : now - due });
       }
     }
   }
-  return rows.sort(compareOverdue);
+  return rows.sort(compareDue);
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ApiError, createApi } from '../shared/trello-api.js';
-import { cardUrl, daysOverdue, dueTimestamp, normalizeBoard } from '../shared/overdue.js';
+import { cardUrl, daysOverdue, dueTimestamp, filterItems, normalizeBoard } from '../shared/overdue.js';
 import { createScanner, readBoard } from '../shared/scan.js';
 import { scanSummary } from '../shared/ui.js';
 
@@ -28,7 +28,7 @@ function fixture() {
   return { api, calls };
 }
 
-test('only incomplete past-due items qualify; all assignees and card dueComplete are irrelevant', () => {
+test('active observations support all three modes with frozen due boundaries and undated last', () => {
   const d = data();
   d.cards[0].dueComplete = true;
   d.cards[0].due = '2030-01-01T00:00:00Z';
@@ -36,7 +36,13 @@ test('only incomplete past-due items qualify; all assignees and card dueComplete
     item(13, { due: null }), item(14, { state: 'complete' }),
     item(15, { due: '2026-09-10T12:00:00Z' }), item(16, { due: '2026-09-11T00:00:00Z' })];
   const rows = normalizeBoard(d, now);
-  assert.deepEqual(rows.map(r => r.itemId), [id(10), id(11)]);
+  assert.deepEqual(rows.map(r => r.itemId), [id(10), id(11), id(15), id(16), id(13)]);
+  assert.deepEqual(filterItems(rows).map(r => r.itemId), [id(10), id(11)]);
+  assert.deepEqual(filterItems(rows, 'dated').map(r => r.itemId), [id(10), id(11), id(15), id(16)]);
+  assert.deepEqual(filterItems(rows, 'all'), rows);
+  assert.deepEqual(rows.map(r => r.elapsedMs), [86400000, 86400000, 0, -43200000, null]);
+  assert.equal(rows.at(-1).due, null);
+  assert.throws(() => filterItems(rows, 'unknown'), { code: 'shape' });
   assert.equal(rows[0].elapsedMs, 86400000);
   assert.equal(rows[0].checklistName, 'Checklist');
   assert.equal(rows[0].boardName, 'Board 1');
@@ -60,8 +66,15 @@ test('instant parsing handles offsets, DST and calendar validity; days use elaps
 
 test('positive archive states exclude boards/cards/lists; missing or moved parents fail', () => {
   for (const change of [d => { d.board.closed = true; },
-    d => { d.cards[0].closed = true; }, d => { d.lists[0].closed = true; }]) {
-    const d = data(); change(d); assert.deepEqual(normalizeBoard(d, now), []);
+    d => { d.cards[0].closed = true; }, d => { d.lists[0].closed = true; },
+    d => { d.cards[0].checklists[0].checkItems.forEach(i => { i.state = 'complete'; }); }]) {
+    const d = data();
+    d.cards[0].checklists[0].checkItems.push(item(6, { due: null }),
+      item(7, { due: '2026-09-11T00:00:00Z' }));
+    change(d);
+    for (const mode of ['all', 'dated', 'overdue']) {
+      assert.deepEqual(filterItems(normalizeBoard(d, now), mode), []);
+    }
   }
   for (const change of [d => { d.lists = []; }, d => { d.cards[0].idBoard = id(100); }]) {
     const d = data(); change(d); assert.throws(() => normalizeBoard(d, now), { code: 'inconsistent' });
@@ -96,10 +109,15 @@ test('card links require a Trello HTTPS card destination; names remain literal t
 
 test('nested and fallback observations normalize equally but neither certifies completeness', async () => {
   const { api } = fixture();
+  const items = [item(), item(6, { due: null }), item(7, { due: '2026-09-11T00:00:00Z' })];
+  const checklist = { ...card().checklists[0], checkItems: items };
+  api.scanCards = async () => [card({ checklists: [checklist] })];
+  api.checklists = async () => [{ ...checklist, idCard: id(3) }];
   const nested = await readBoard(api, board(), { now, signal: signal() });
   const fallback = await readBoard(api, board(), { now, signal: signal(), strategy: 'fallback' });
   assert.deepEqual(nested, fallback);
-  assert.equal(nested.rows.length, 1);
+  assert.equal(nested.rows.length, 3);
+  assert.equal(filterItems(nested.rows).length, 1);
   assert.deepEqual(nested.issues, ['collection-completeness-unverified']);
 });
 
@@ -167,13 +185,16 @@ test('multi-board scan freezes eligibility, sorts ties, retains successful rows 
 });
 
 test('items seen on two boards after a move cannot inflate the observed count', async () => {
-  const { api } = fixture();
-  api.boards = async () => [board(1), board(10)];
-  api.scanCards = async boardId => [card({ idBoard: boardId })];
-  const result = await createScanner(api, { clock: () => now }).scan();
-  assert.equal(result.rows.length, 1);
-  assert.deepEqual(result.failedBoards, [{ boardId: id(10), code: 'inconsistent', status: 0 }]);
-  assert.equal(result.complete, false);
+  for (const due of ['2026-09-09T12:00:00Z', '2026-09-11T00:00:00Z', null]) {
+    const { api } = fixture();
+    api.boards = async () => [board(1), board(10)];
+    api.scanCards = async boardId => [card({ idBoard: boardId,
+      checklists: [{ ...card().checklists[0], checkItems: [item(5, { due })] }] })];
+    const result = await createScanner(api, { clock: () => now }).scan();
+    assert.equal(result.rows.length, 1);
+    assert.deepEqual(result.failedBoards, [{ boardId: id(10), code: 'inconsistent', status: 0 }]);
+    assert.equal(result.complete, false);
+  }
 });
 
 test('empty and partial-zero observations cannot become a complete empty scan', async () => {
@@ -302,4 +323,10 @@ test('summaries distinguish successful observations from certified coverage and 
   assert.match(scanSummary(failed).coverage, /1 of 1 boards could not be checked/);
   assert.match(scanSummary(failed).coverage, /completeness has not been verified for the returned data/);
   assert.equal(scanSummary({ ...failed, complete: true }).complete, false);
+  for (const [mode, description] of [['all', 'active'], ['dated', 'active dated'], ['overdue', 'overdue']]) {
+    assert.equal(scanSummary(failed, mode).summary, `No ${description} items found in the returned data.`);
+    assert.equal(scanSummary({ ...result, rows: [{}] }, mode).summary, `1 ${description} item found.`);
+    assert.match(scanSummary(failed, mode).coverage, /1 of 1 boards could not be checked/);
+    assert.match(scanSummary(failed, mode).coverage, /completeness has not been verified for the returned data/);
+  }
 });

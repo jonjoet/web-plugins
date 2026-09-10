@@ -1,18 +1,19 @@
 # Overdue Checklist Items
 
-A personal, read-only Trello Power-Up for overdue checklist items across open
+A personal, read-only Trello Power-Up for active checklist items across open
 boards, open lists, and open cards, for all assignees.
 
-**Current milestone: overdue table preview.** The board button opens a fullscreen
+**v0.2.0: active checklist display filters.** The board button opens a fullscreen
 view with SDK authorization, selected-board and all-board scan controls, and the
-original counts-only integration check. The table lists overdue observations;
+original counts-only integration check. The table offers all active, dated, and overdue observations;
 it does not yet certify collection completeness. A single-board live check confirmed the original
-checklist item projection, and the user reported opening the modal twice.
+checklist item projection, and the user reported opening the modal twice and the
+v0.1.0 overdue table working well on their board.
 Archive/join classification, endpoint completeness and broader live acceptance
 remain pending. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md).
 
 The domain and scan modules are in `shared/overdue.js` and `shared/scan.js`, with
-synthetic tests. They validate overdue dates and parent
+synthetic tests. They validate item dates and parent
 archive states, resolve fallback card references, cache board listings in memory,
 and cancel replaced scans. They support multiple boards or an explicit board ID.
 Scans always mark collection completeness unverified until the endpoint pagination
@@ -20,9 +21,20 @@ contract is established. The current UI uses the nested request strategy; the
 explicit fallback remains available to module callers and tests.
 
 After connecting, choose a board and click **Scan selected board**, or use
-**Scan all boards**. Sort any table column using its header button; card links open
+**Scan all boards**. After scanning, use **Show** to select:
+
+- **All active items:** overdue, upcoming and undated incomplete items.
+- **With a due date:** overdue and upcoming incomplete items, including due exactly at scan start.
+- **Overdue only** (default): incomplete items due strictly before scan start.
+
+Completed checklist items and archived boards, lists and cards are excluded in
+every mode. Changing modes uses the last scan without new Trello requests, resets
+sorting to due ascending (oldest first, undated last), and preserves the scan's
+frozen time. Sort any table column using its header button; card links open
 in a new tab. Dates use your local timezone, and Days overdue counts elapsed
-24-hour periods, with `<1` for less than a day. **Refresh results** reruns the last
+24-hour periods, with `<1` for less than a day. A dash means no due date or not
+overdue at scan start; blank numeric cells stay last in either sort direction.
+**Refresh results** keeps the selected display mode and reruns the last
 scope using cached board listings; **Reload board list** also refreshes that list
 and clears displayed results. **Cancel scan** stops the current scan.
 
@@ -153,10 +165,11 @@ browser; pass `PLAYWRIGHT_MODULE`, `BROWSER_EXECUTABLE`, `TEST_SITE_DIR`, and
 and API and checks the built site at its production subpath. This does not test
 real Trello iframe permissions or consent.
 
-## Overdue behavior and reuse
+## Item behavior and reuse
 
-The preview includes incomplete items whose due time is strictly
-before one frozen scan timestamp. Due dates display in local time; Days overdue
+The scanner retains all incomplete items; the view filters these observations
+by the selected mode. Overdue means due strictly before one frozen scan timestamp;
+equal-to-now is not overdue. Due dates display in local time; Days overdue
 counts elapsed 24-hour periods (`<1` below a full day). Archived boards, lists,
 and cards are excluded. Parent-card completion and item assignee do not change
 eligibility. Partial reads must show incomplete status rather than a total.

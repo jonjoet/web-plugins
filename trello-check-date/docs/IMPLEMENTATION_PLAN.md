@@ -9,25 +9,34 @@ No open card in an archived list was observed. Fallback join misses were observe
 but their classification remains unverified against live data. Revocation recovery
 and pagination/exhaustion also remain pending, so the Phase 1 exit is not closed.
 
-Phase 2 domain and scan modules implement validated overdue observations, archive
+Phase 2 domain and scan modules implement validated active observations, archive
 filtering, targeted fallback lookup, board caching, partial results and cancellation.
 The preview now offers a sortable table for selected-board or all-board scans,
 alongside the original integration check. Collection completeness remains explicitly
 unverified, including empty responses: pagination and its multiple-page
 and repeated-cursor tests are still to be implemented against a verified endpoint
 contract. Phase 2 is therefore partial. Phase 3's table, progress, partial-result
-notices, refresh and cancellation are implemented; the combined live scan query
-and displayed overdue results still need user verification. Scans start from an
+notices, refresh and cancellation are implemented. The user reported the deployed
+v0.1.0 table working well on their board; this is not exhaustive live acceptance. Scans start from an
 explicit button, allowing a selected-board read without an automatic account scan.
 Phase 4's Pages workflow completed all three jobs successfully in the first
 configured deployment; the step-by-step setup guide remains available.
 Prepared with GPT-6 against the build spec in commit
 `dbb57908e653addb584eb3396dbc9f6121d71053`.
 
+The user-directed v0.2.0 milestone adds display filters before pagination work:
+all active items, active items with a due date, and overdue only (the default).
+All modes exclude completed checklist items and archived boards/lists/cards.
+Filters reuse normalized observations without refetching and preserve the frozen
+scan timestamp. Default order in each mode is due ascending, undated last;
+undated Due and non-overdue Days overdue cells show a dash. Selected/all-board
+controls and integration diagnostics remain. These filters do not close any
+pending completeness or live archive/fallback acceptance gate.
+
 ## 1. Outcome and scope
 
 Build a personal Trello Power-Up whose board button opens a fullscreen view of
-incomplete, overdue checklist items across the signed-in user's open boards,
+active checklist items, with overdue only as the default display, across the signed-in user's open boards,
 open lists, and open cards. Use a static site, vanilla JavaScript modules, Vite, and a read-only
 Trello user token. Keep the shared Trello authentication, fetching, and UI code
 small enough to serve a second Power-Up without building that second app.
@@ -149,7 +158,7 @@ board, verify the spec's nested cards/checklists route and its field projection.
 Request identifiers and any fields necessary to establish card archive state,
 parent-list archive state, item eligibility, joins, links, and collection completeness. An actual empty
 collection is valid; a missing required collection or malformed response fails
-that board. Items with a null due date are ordinary non-matches; an invalid
+that board. Items with a null due date match only the all-active display; an invalid
 non-null date or unrecognized state must be reported as a data-quality failure
 instead of making the total appear complete.
 
@@ -218,6 +227,16 @@ boards, lists, and cards. Excluding archived lists is an explicit refinement of
 the original spec, which named board and card archive filters but left this case
 unspecified. State that scope in the modal and README; retain it when comparing
 the result with user-visible Trello content. No assignee filter is introduced.
+
+Normalize all incomplete items, including future and null due dates, before
+applying the display filter in the view. The three modes are all active, active
+with a due date, and overdue only. Switching modes uses the same observations
+and frozen timestamp; Refresh results reads again and advances that timestamp.
+Completed checklist items are excluded in every mode. Mode changes reset sorting
+to due ascending, with undated items last. Undated Due and non-overdue Days overdue
+cells display a dash, and blank numeric cells sort last in either direction.
+Headings, captions and summaries describe the selected mode; zero-result modes
+retain both failed-board and unverified returned-data notices where applicable.
 
 An item is overdue only when its valid due timestamp is strictly less than the
 scan's frozen `now` and its state is incomplete. An item due exactly at `now` is
@@ -315,7 +334,7 @@ account setup, verify the final registered URL and live cross-board results.
 
 | Layer | Required cases |
 | --- | --- |
-| Domain | Incomplete/past-due included; complete/future/null-due excluded; equal-to-now boundary; invalid date and state handling; UTC offsets and DST boundary; stable ties; numeric Days overdue ordering; archived board/card/list filtering, including an open card in an archived list; item eligibility independent of parent-card dueComplete and assignment. |
+| Domain | All/dated/overdue mode membership; completed items excluded in every mode; past/equal/future/null-due boundaries; invalid date and state handling; UTC offsets and DST boundary; stable ties; due ascending with undated last; numeric Days overdue ordering and non-overdue blanks; archived board/card/list filtering in every mode, including an open card in an archived list; item eligibility independent of parent-card dueComplete and assignment; mode switches without refetch or clock drift, refresh and cancellation isolation. |
 | HTTP and scans | Empty board list; empty cards/checklists; unexpected/missing arrays; compare exact `checklist_fields=name` with omitted projection; HTTP 200 lacking `checkItems` is a failure; more than one page and repeated cursor; duplicate IDs; failed list request or missing list reference; fallback join miss with confirmed archived card, missing open card, moved card, and failed/404/403 card lookup; mid-scan inaccessible board; retryable 429/5xx/network failure with bounded attempts; 401 clears auth and cancels; board-list failure; partial zero results; refresh and close cancellation; late response isolation. |
 | Browser with synthetic data | Board-button declaration and fullscreen modal arguments; authorize from a view click; denied/cancelled/failed auth; returning-token path; all display states; sorting via keyboard; hostile item names rendered as text; external Trello links; narrow viewport; production subpath assets and modal URLs. |
 | Clean build and packaging | Container installs from lockfile; lint/tests/build pass; no local config in checkout; fake-key verification succeeds; production missing-key build fails; public-key build succeeds; both HTML entry points and icons resolve in the staged Pages directory; token canary absent from output and logs. |

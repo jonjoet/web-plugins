@@ -209,7 +209,63 @@ try {
       due: new Date(instant - 2.5 * 86400000).toISOString() },
     { id: id('3'), name: 'Complete item', state: 'complete', due: new Date(instant - 86400000).toISOString() },
     { id: id('4'), name: 'Future item', state: 'incomplete', due: new Date(instant + 86400000).toISOString() },
+    { id: id('5'), name: 'Undated item', state: 'incomplete', due: null },
   ];
+  await scenario('display modes reuse frozen observations, sort dates and blanks, and survive refresh',
+    { returning: true, listsClosed: false, items: [...scanItems,
+      { id: id('6'), name: 'Equal-now item', state: 'incomplete', due: new Date(instant).toISOString() }] },
+    async ({ page, requests }) => {
+      // Fixed Date leaves request scheduling timers running normally.
+      await page.clock.setFixedTime(instant);
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      const mode = page.getByLabel('Show', { exact: true });
+      assert.equal(await mode.inputValue(), 'overdue');
+      const requestCount = requests.length;
+      const scanTime = await page.locator('#scan-time').innerText();
+      await page.clock.setFixedTime(instant + 2 * 86400000);
+      await mode.selectOption('all');
+      assert.equal(await page.locator('#scan-summary').innerText(), '5 active items found.');
+      const rows = page.locator('tbody tr');
+      assert.deepEqual(await rows.locator('td:first-child').allTextContents(),
+        [scanItems[0].name, scanItems[1].name, 'Equal-now item', 'Future item', 'Undated item'].map(n => `${n}Checklist`));
+      assert.deepEqual(await rows.locator('td:last-child').allTextContents(), ['10', '2', '—', '—', '—']);
+      assert.equal(await rows.last().locator('td').nth(3).innerText(), '—');
+      assert.equal(await rows.last().locator('time').count(), 0);
+      await page.getByRole('button', { name: 'Due', exact: true }).click();
+      assert.match(await rows.first().innerText(), /^Future item/);
+      assert.match(await rows.last().innerText(), /^Undated item/);
+      const days = page.getByRole('button', { name: 'Days overdue', exact: true });
+      await days.click();
+      assert.deepEqual(await rows.locator('td:last-child').allTextContents(), ['10', '2', '—', '—', '—']);
+      await days.click();
+      assert.deepEqual(await rows.locator('td:last-child').allTextContents(), ['2', '10', '—', '—', '—']);
+      await mode.selectOption('dated');
+      assert.equal(await page.locator('#scan-summary').innerText(), '4 active dated items found.');
+      assert.match(await rows.first().innerText(), /^Alpha/);
+      assert.equal(await page.getByRole('button', { name: 'Due', exact: true })
+        .evaluate(node => node.parentElement.getAttribute('aria-sort')), 'ascending');
+      await mode.selectOption('overdue');
+      assert.equal(await rows.count(), 2, 'Mode switch must not recompute overdue at wall-clock time');
+      assert.equal(await page.locator('#scan-time').innerText(), scanTime);
+      assert.equal(requests.length, requestCount, 'Mode switches must not refetch');
+      await mode.selectOption('all');
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.screenshot({ path: resolve(output, 'synthetic-filters-mobile.png'), fullPage: true });
+      await page.setViewportSize({ width: 1280, height: 1100 });
+      await page.screenshot({ path: resolve(output, 'synthetic-filters-desktop.png'), fullPage: true });
+      await page.getByRole('button', { name: 'Refresh results', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      assert.equal(await mode.inputValue(), 'all');
+      assert.equal(await rows.count(), 5);
+      assert.ok(requests.length > requestCount);
+      await mode.selectOption('overdue');
+      assert.equal(await rows.count(), 4, 'Refresh advances the frozen scan timestamp');
+      await page.getByRole('button', { name: 'Forget authorization', exact: true }).click();
+      await page.getByText('Stored authorization removed.', { exact: false }).waitFor();
+      assert.equal(await page.locator('#scan-results').isVisible(), false);
+    });
   await scenario('selected-board table, keyboard and numeric sorting, links, safe names and responsive layout',
     { returning: true, listsClosed: false, items: scanItems }, async ({ page }) => {
       await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
@@ -276,6 +332,11 @@ try {
       assert.match(await page.locator('#scan-errors').innerText(), /Second board/);
       assert.doesNotMatch(await page.locator('#scan-errors').innerText(), /private detail/);
       assert.match(await page.locator('#scan-time').innerText(), /Read 1 of 2 boards/);
+      for (const mode of ['all', 'dated', 'overdue']) {
+        await page.locator('#item-mode').selectOption(mode);
+        assert.match(await page.locator('#scan-coverage').innerText(), /1 of 2 boards could not be checked/);
+        assert.match(await page.locator('#scan-coverage').innerText(), /completeness has not been verified for the returned data/);
+      }
     });
   await scenario('zero observed rows remain unverified rather than empty success',
     { returning: true, listsClosed: false, items: [scanItems[2]] }, async ({ page }) => {
@@ -286,6 +347,12 @@ try {
       assert.doesNotMatch(await page.locator('#scan-results').innerText(), /Nothing overdue/);
       assert.equal(await page.locator('table').isVisible(), false);
       assert.equal(await page.locator('#scan-coverage').isVisible(), true);
+      for (const [mode, description] of [['all', 'active'], ['dated', 'active dated'], ['overdue', 'overdue']]) {
+        await page.locator('#item-mode').selectOption(mode);
+        assert.equal(await page.locator('#scan-summary').innerText(), `No ${description} items found in the returned data.`);
+        assert.equal(await page.locator('table').isVisible(), false);
+        assert.equal(await page.locator('#scan-coverage').isVisible(), true);
+      }
     });
   await scenario('token revoked during a scan clears results and returns to authorize',
     { returning: true, listsClosed: false }, async ({ page, context }) => {
@@ -338,6 +405,8 @@ try {
       await page.waitForTimeout(350);
       assert.equal(await page.locator('#scan-summary').innerText(), '2 overdue items found.');
       assert.equal(await page.locator('tbody tr').count(), 2);
+      await page.locator('#item-mode').selectOption('all');
+      assert.equal(await page.locator('tbody tr').count(), 4, 'Only newer active observations survive refresh');
     });
   await writeFile(resolve(output, 'browser-results.json'), JSON.stringify(results, null, 2));
   console.log(`${results.length} synthetic browser scenarios passed.`);

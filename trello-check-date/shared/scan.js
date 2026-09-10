@@ -1,5 +1,5 @@
 import { ApiError } from './trello-api.js';
-import { cardIsActive, compareOverdue, indexLists, indexRecords, normalizeBoard,
+import { cardIsActive, compareDue, indexLists, indexRecords, normalizeBoard,
   requireShape, validId, validateBoard, validateCard } from './overdue.js';
 
 // Never label the current single-response routes complete. The live shape probe
@@ -120,7 +120,7 @@ export function createScanner(api, { clock = Date.now } = {}) {
       }
       const finishedAt = clock();
       requireShape(Number.isFinite(finishedAt));
-      return { rows: rows.sort(compareOverdue), completedBoardIds, failedBoards,
+      return { rows: rows.sort(compareDue), completedBoardIds, failedBoards,
         unverifiedBoardIds, totalBoards: boards.length, startedAt, finishedAt,
         // Board enumeration itself also lacks a verified limit contract. Even
         // an empty list cannot certify an account-wide empty result yet.

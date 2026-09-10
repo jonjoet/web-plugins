@@ -20,15 +20,18 @@ export function messageFor(error) {
 
 export function show(element, visible) { element.hidden = !visible; }
 
-export function scanSummary(result) {
+// The caller supplies rows already filtered to the selected display mode.
+export function scanSummary(result, mode = 'overdue') {
   const failed = result.failedBoards.length;
   const read = result.completedBoardIds.length + result.unverifiedBoardIds.length;
   const complete = result.complete && failed === 0
     && result.unverifiedBoardIds.length === 0 && result.issues.length === 0;
   const count = result.rows.length;
-  const summary = complete && count === 0 ? 'Nothing overdue.'
-    : count === 0 ? 'No overdue items found in the returned data.'
-      : `${count} overdue ${count === 1 ? 'item' : 'items'} found.`;
+  const description = mode === 'all' ? 'active' : mode === 'dated' ? 'active dated' : 'overdue';
+  const summary = complete && count === 0
+    ? (mode === 'overdue' ? 'Nothing overdue.' : `No ${description} items found.`)
+    : count === 0 ? `No ${description} items found in the returned data.`
+      : `${count} ${description} ${count === 1 ? 'item' : 'items'} found.`;
   return { summary, complete,
     progress: `Read ${read} of ${result.totalBoards} ${result.totalBoards === 1 ? 'board' : 'boards'}.`,
     coverage: complete ? '' : (failed

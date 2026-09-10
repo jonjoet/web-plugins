@@ -1,4 +1,4 @@
-import { cardUrl, compareOverdue, daysOverdue } from './overdue.js';
+import { cardUrl, compareDue, daysOverdue, filterItems } from './overdue.js';
 import { messageFor, scanSummary } from './ui.js';
 
 const columns = [
@@ -15,7 +15,21 @@ export function createResultsView(root) {
     if (className) node.className = className;
     return node;
   }
-  const title = element('h2', 'Overdue checklist items');
+  const titles = { all: 'All active checklist items', dated: 'Active checklist items with a due date',
+    overdue: 'Overdue checklist items' };
+  const title = element('h2');
+  const modeLabel = element('label', 'Show');
+  modeLabel.htmlFor = 'item-mode';
+  const mode = element('select');
+  mode.id = 'item-mode';
+  for (const [value, label] of [['all', 'All active items'], ['dated', 'With a due date'],
+    ['overdue', 'Overdue only']]) {
+    const option = element('option', label);
+    option.value = value;
+    mode.append(option);
+  }
+  mode.value = 'overdue';
+  mode.addEventListener('change', drawResult);
   const scope = element('p');
   scope.id = 'scan-scope';
   const summary = element('p');
@@ -30,14 +44,15 @@ export function createResultsView(root) {
   const scroll = element('div', undefined, 'table-scroll');
   scroll.tabIndex = 0;
   scroll.setAttribute('role', 'region');
-  scroll.setAttribute('aria-label', 'Scrollable overdue items');
+  scroll.setAttribute('aria-label', 'Scrollable checklist items');
   const table = element('table');
-  const caption = element('caption', 'Incomplete, overdue checklist items');
+  const caption = element('caption');
   const head = element('thead');
   const headerRow = element('tr');
   const body = element('tbody');
   const headers = [];
   let rows = [];
+  let observation;
   let sortKey = 'due';
   let direction = 1;
   for (const column of columns) {
@@ -58,15 +73,22 @@ export function createResultsView(root) {
   head.append(headerRow);
   table.append(caption, head, body);
   scroll.append(table);
-  root.replaceChildren(title, scope, summary, coverage, failures, time, scroll,
-    element('p', 'Dates use your local timezone. Days overdue counts completed 24-hour periods; <1 means less than a day.', 'footnote'));
+  root.replaceChildren(title, modeLabel, mode,
+    element('p', 'Filters use the last scan without reading Trello again. Completed items and archived boards, lists, and cards are excluded in every mode.', 'footnote'),
+    scope, summary, coverage, failures, time, scroll,
+    element('p', 'Dates use your local timezone. Days overdue counts completed 24-hour periods; <1 means less than a day. A dash means no due date or not overdue at scan start.', 'footnote'));
 
   function drawRows() {
     const column = columns.find(c => c.key === sortKey);
     const ordered = [...rows].sort((a, b) => {
-      const difference = column.numeric ? a[sortKey] - b[sortKey]
+      const value = row => sortKey === 'elapsedMs' && !(row.elapsedMs > 0) ? null : row[sortKey];
+      // Empty numeric cells stay last in either direction, never epoch zero.
+      if (column.numeric && (value(a) === null || value(b) === null)) {
+        return (value(a) === null) - (value(b) === null) || compareDue(a, b);
+      }
+      const difference = column.numeric ? value(a) - value(b)
         : a[sortKey].localeCompare(b[sortKey]);
-      return direction * difference || compareOverdue(a, b);
+      return direction * difference || compareDue(a, b);
     });
     headers.forEach((th, i) => th.setAttribute('aria-sort', columns[i].key !== sortKey
       ? 'none' : direction === 1 ? 'ascending' : 'descending'));
@@ -81,30 +103,40 @@ export function createResultsView(root) {
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       card.append(link);
-      const due = element('td');
-      const instant = element('time', dateFormat.format(row.due));
-      instant.dateTime = new Date(row.due).toISOString();
-      due.append(instant);
-      tr.append(item, card, element('td', row.boardName), due, element('td', daysOverdue(row.elapsedMs)));
+      const due = element('td', row.due === null ? '—' : undefined);
+      if (row.due !== null) {
+        const instant = element('time', dateFormat.format(row.due));
+        instant.dateTime = new Date(row.due).toISOString();
+        due.append(instant);
+      }
+      tr.append(item, card, element('td', row.boardName), due,
+        element('td', row.elapsedMs > 0 ? daysOverdue(row.elapsedMs) : '—'));
       body.append(tr);
     }
     scroll.hidden = rows.length === 0;
   }
 
-  function clear() { rows = []; body.replaceChildren(); root.hidden = true; }
-  function render(result, { label, boardNames }) {
-    rows = result.rows;
+  function clear() { observation = undefined; rows = []; body.replaceChildren(); root.hidden = true; }
+  function drawResult() {
+    if (!observation) return;
+    rows = filterItems(observation.rows, mode.value);
     sortKey = 'due'; direction = 1;
-    const text = scanSummary(result);
-    scope.textContent = label;
+    title.textContent = titles[mode.value];
+    caption.textContent = titles[mode.value];
+    const text = scanSummary({ ...observation, rows }, mode.value);
     summary.textContent = text.summary;
     coverage.textContent = text.coverage;
     coverage.hidden = text.complete;
-    time.textContent = `${text.progress} Last scan finished ${dateFormat.format(result.finishedAt)}.`;
+    time.textContent = `${text.progress} Last scan finished ${dateFormat.format(observation.finishedAt)}. Overdue status as of ${dateFormat.format(observation.startedAt)}.`;
+    drawRows();
+  }
+  function render(result, { label, boardNames }) {
+    observation = result;
+    scope.textContent = label;
     failures.replaceChildren(...result.failedBoards.map(failure => element('li',
       `${boardNames.get(failure.boardId) || 'Unavailable board'}: ${messageFor(failure)}`)));
     failures.hidden = result.failedBoards.length === 0;
-    drawRows();
+    drawResult();
     root.hidden = false;
   }
   return { clear, render };

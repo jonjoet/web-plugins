@@ -194,7 +194,7 @@ async function scanBoards(options) {
   const label = options.boardId ? `Board: ${boardNames.get(options.boardId)}` : 'All open boards';
   show(ui['scan-refresh'], true);
   show(ui['scan-cancel'], true);
-  ui['scan-progress'].textContent = 'Reading overdue checklist items…';
+  ui['scan-progress'].textContent = 'Reading active checklist items…';
   setScanControls();
   try {
     const result = await scanner.scan({ ...options, signal: work.signal,

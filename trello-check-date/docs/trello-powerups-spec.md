@@ -25,6 +25,10 @@ has **no native view for overdue *checklist items* across cards and boards**. Th
 app adds a board button that opens a panel listing every incomplete, past-due
 checklist item across all of the user's boards.
 
+The user-directed v0.2.0 scope extends that view with all-active and dated-active
+display modes. Overdue only remains the default. This milestone precedes paging
+work and does not establish collection completeness.
+
 ## 2. Goals
 
 - A monorepo where adding "Power-Up N+1" means writing one small view + one
@@ -142,18 +146,26 @@ the Git root's `.github/workflows/`.
      **Authorize (read-only)** button that calls `authorize({ scope: "read" })`.
    - Once authorized, lists open boards. **Scan all boards** reads cards and
      checklists across them (§7); **Scan selected board** reads only the chosen
-     board. Both flatten to checklist items and filter to **incomplete + past-due**.
+     board. Both retain active checklist items. The **Show** selector offers
+     **All active items**, **With a due date**, and **Overdue only** (default).
+     All active includes undated, upcoming and overdue incomplete items; dated
+     includes upcoming and overdue; overdue requires due strictly before scan start.
+     Every mode excludes completed items and archived boards, lists and cards.
+     Switching modes filters in memory without new API requests or advancing time.
    - Renders a **sortable table**: columns = *Item*, *Card*, *Board*, *Due*,
-     *Days overdue*. Default sort: most overdue first. *Card* links to the card
-     (open in Trello). Show a small count summary ("14 overdue items").
+     *Days overdue*. Default sort in every mode: due ascending, most overdue first,
+     then soonest upcoming, with undated items last. Mode changes reset this sort.
+     Undated Due and non-overdue Days overdue cells show a dash. Blank numeric
+     cells remain last in either sort direction. *Card* links to the card
+     (open in Trello). Headings, captions and counts reflect the display mode.
    - **Empty state**, only after a complete scan: "Nothing overdue 🎉". **Error state**: human-readable message +
      a retry button. **Loading state**: spinner/skeleton while fetching.
 
 ### Edge cases the agent must handle
 - User authorized previously → skip the Authorize button, go straight to data.
 - Token revoked/expired → API returns 401 → fall back to the Authorize button.
-- Boards with zero checklist items, or checklist items with no due date → excluded
-  silently.
+- Boards with zero checklist items contribute no rows. Incomplete items without
+  due dates appear only in All active items; completed items never appear.
 - Closed/archived boards, lists, and cards → exclude. A card can remain open
   inside an archived list; inspect list `closed` state using card `idList`.
 - Timezone: `due` is absolute (UTC ISO). Compare against `Date.now()`; display in
@@ -187,10 +199,12 @@ Selected nested item projection, with endpoint completeness still pending:
   the name projection; it did not omit items in that observation. Required item
   fields are `id`, `name`, `state`, and `due`. Missing arrays must fail, not become
   empty arrays. Card archive/join metadata was checked separately; the combined
-  projection above remains to be exercised live.
-- Flatten: for each card → each checklist → each checkItem, keep if
-  `due && new Date(due) < now && state === "incomplete"`, attaching card name/url
-  and board name.
+  projection above was subsequently exercised by the user's v0.1.0 selected-board
+  scan, reported working well. This does not establish exhaustive live acceptance.
+- Flatten: for each active card → each checklist → each checkItem, validate and
+  retain `state === "incomplete"`, attaching card name/url and board name. Keep
+  null due dates as null and freeze elapsed time at scan start. The view filters
+  by mode: all rows; non-null due; or non-null due strictly before scan start.
 
 Both candidate strategies read `GET /boards/{id}/lists?filter=all&fields=closed`.
 Missing list references or invalid archive states make the board incomplete.

@@ -4,9 +4,9 @@ These steps are for [jonjoet/web-plugins](https://github.com/jonjoet/web-plugins
 Everything can be done in your browser; no local Node or Docker installation is
 needed for this route.
 
-This release is an **overdue table preview**. It opens from a Trello board,
-requests read-only access, and lists overdue observations for a selected board or
-all open boards. Collection completeness is not yet verified, and the original
+This release is an **active checklist table preview (v0.2.0)**. It opens from a Trello board,
+requests read-only access, and lists active observations for a selected board or
+all open boards, with overdue only as the default display. Collection completeness is not yet verified, and the original
 field/count integration check remains available. The website and source are public; your Trello board
 data and authorization token are not part of the published site.
 
@@ -162,24 +162,31 @@ Missing item arrays, invalid records, or HTTP errors are outcomes to investigate
 not evidence of zero overdue items. Targeted fallback-card classification and
 large-board paging/exhaustion remain pending even when these checks pass.
 
-## 8. View overdue items
+## 8. View and filter checklist items
 
 1. Reopen the Power-Up after the updated deployment finishes.
 2. Choose your board and click **Scan selected board**. Use **Scan all boards**
    only if you want the broader scan; no second test board is needed.
-3. The table shows incomplete, past-due items on open cards in open lists.
-   Completed items and undated/future items are excluded, for all assignees.
+3. The table defaults to **Overdue only**: incomplete items due before scan start.
+   Use **Show → All active items** to also see upcoming and undated items, or
+   **With a due date** for upcoming and overdue items without undated rows.
+   Completed checklist items and archived boards, lists and cards are excluded
+   in every mode, for all assignees. Switching modes uses the last scan without
+   fetching again; use Refresh results to update the data and overdue timestamp.
 4. Click a column heading to sort, or focus it and press Enter. Card links open in
    a new tab. Dates use your local timezone; Days overdue is elapsed 24-hour
-   periods rather than calendar boundaries.
+   periods rather than calendar boundaries. Each mode starts sorted by due date,
+   oldest first, undated last. A dash means no due date or not overdue at scan start.
 5. Compare the selected-board observations with the items you know in Trello.
    The completeness notice is expected in this release, even if all board reads
    succeed. Zero observed rows do not prove that nothing is overdue.
-6. **Refresh results** reruns the same scope. **Reload board list** refreshes board
+6. **Refresh results** keeps the display mode and reruns the same scope. **Reload board list** refreshes board
    membership and clears the current results. **Cancel scan** stops a running scan.
 
-The combined scan projection and table are newer than the original shape probe;
-the earlier successful integration report does not by itself verify the new view.
+The v0.1.0 overdue table was reported working on the user's board. The added
+display modes still need live use; synthetic checks do not establish live acceptance.
+Existing installations need only reopen the modal after deployment, with no new
+key, registration or consent scope.
 
 ## Troubleshooting and revocation
 
