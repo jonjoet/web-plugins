@@ -45,11 +45,27 @@ describe this setting.
 
 The connector URL is determined now and becomes live after step 5. Do not enable
 the Power-Up on a board until the deployment finishes. If the admin portal rejects
-the not-yet-hosted URL, report that validation message before continuing; do not
+the not-yet-hosted URL, use the optional reachability fallback below. Do not
 substitute a GitHub source-file URL or generate a user token as a workaround.
 
 Trello documents the registration fields in
 [Managing Apps](https://developer.atlassian.com/cloud/trello/guides/power-ups/managing-apps/).
+
+### Only if registration requires a reachable connector
+
+This is a contingency, not a known requirement of the admin portal:
+
+1. Follow steps 4 and 5 below with `TRELLO_APP_KEY` temporarily set to
+   `00000000000000000000000000000000` and `TRELLO_PAGES_ENABLED` set to `true`.
+   This deliberately publishes a preview with a placeholder app key so the
+   connector URL can load. Authorization will not work with that key.
+2. Once the hosted connector is reachable, return to steps 2 and 3 to register
+   the Power-Up, generate its real public API key, and set the allowed origin.
+3. Replace the placeholder repository variable with the real public API key and
+   run the workflow again as in step 5. Changing the variable alone does not
+   update the deployed site.
+4. Wait for that new deployment to succeed before enabling or authorizing the
+   Power-Up in step 6. If registration still fails, share the validation message.
 
 ## 3. Generate the app key and allow the hosting origin
 
@@ -88,6 +104,11 @@ requests run checks with a fake key and never deploy. Setting the flag to `false
 stops future deployments; it does not remove a site that is already published.
 
 ## 5. Run the first deployment
+
+Pre-deployment validation covered the CI check job and local build/staging
+commands. The first deployment also tests GitHub's artifact-upload, Pages setup,
+and publish actions for this repository. If one fails, share the failed job/run
+link: the workflow may need a fix, rather than the problem being your settings.
 
 1. Open [Actions → Trello checks and Pages](https://github.com/jonjoet/web-plugins/actions/workflows/trello-check-date.yml).
 2. Click **Run workflow**, select **main**, and click the green **Run workflow** button.
