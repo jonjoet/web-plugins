@@ -31,7 +31,7 @@ export function scanSummary(result) {
       : `${count} overdue ${count === 1 ? 'item' : 'items'} found.`;
   return { summary, complete,
     progress: `Read ${read} of ${result.totalBoards} ${result.totalBoards === 1 ? 'board' : 'boards'}.`,
-    coverage: complete ? '' : failed
-      ? `${failed} of ${result.totalBoards} boards could not be checked. Results may be incomplete.`
-      : 'Some items may be missing; completeness has not been verified.' };
+    coverage: complete ? '' : (failed
+      ? `${failed} of ${result.totalBoards} boards could not be checked. ` : '')
+      + 'Some items may be missing; completeness has not been verified for the returned data.' };
 }

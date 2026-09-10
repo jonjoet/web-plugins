@@ -300,5 +300,6 @@ test('summaries distinguish successful observations from certified coverage and 
   assert.equal(scanSummary({ ...complete, rows: [{}] }).summary, '1 overdue item found.');
   const failed = { ...result, unverifiedBoardIds: [], failedBoards: [{ boardId: id(1) }] };
   assert.match(scanSummary(failed).coverage, /1 of 1 boards could not be checked/);
+  assert.match(scanSummary(failed).coverage, /completeness has not been verified for the returned data/);
   assert.equal(scanSummary({ ...failed, complete: true }).complete, false);
 });

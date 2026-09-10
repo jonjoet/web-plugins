@@ -272,6 +272,7 @@ try {
       await page.locator('#scan-results').waitFor({ state: 'visible' });
       assert.equal(await page.locator('#scan-summary').innerText(), '1 overdue item found.');
       assert.match(await page.locator('#scan-coverage').innerText(), /1 of 2 boards could not be checked/);
+      assert.match(await page.locator('#scan-coverage').innerText(), /completeness has not been verified for the returned data/);
       assert.match(await page.locator('#scan-errors').innerText(), /Second board/);
       assert.doesNotMatch(await page.locator('#scan-errors').innerText(), /private detail/);
       assert.match(await page.locator('#scan-time').innerText(), /Read 1 of 2 boards/);
