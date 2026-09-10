@@ -148,7 +148,10 @@ test('multi-board scan freezes eligibility, sorts ties, retains successful rows 
   api.scanCards = async boardId => {
     time += 86400000;
     if (boardId === id(12)) throw new ApiError('http', 403);
-    return [card({ idBoard: boardId })];
+    const n = parseInt(boardId, 16);
+    return [card({ id: id(100 + n), idBoard: boardId, checklists: [{
+      id: id(200 + n), name: 'Checklist', checkItems: [item(300 + n)],
+    }] })];
   };
   const result = await createScanner(api, { clock: () => time }).scan({ onProgress: p => progress.push(p) });
   assert.deepEqual(result.rows.map(r => r.boardId), [id(10), id(11)]);
@@ -160,6 +163,16 @@ test('multi-board scan freezes eligibility, sorts ties, retains successful rows 
   assert.equal(result.startedAt, now);
   assert.equal(result.finishedAt, now + 3 * 86400000);
   assert.deepEqual(progress, [0, 1, 2, 3].map(checkedBoards => ({ checkedBoards, totalBoards: 3 })));
+});
+
+test('items seen on two boards after a move cannot inflate the observed count', async () => {
+  const { api } = fixture();
+  api.boards = async () => [board(1), board(10)];
+  api.scanCards = async boardId => [card({ idBoard: boardId })];
+  const result = await createScanner(api, { clock: () => now }).scan();
+  assert.equal(result.rows.length, 1);
+  assert.deepEqual(result.failedBoards, [{ boardId: id(10), code: 'inconsistent', status: 0 }]);
+  assert.equal(result.complete, false);
 });
 
 test('empty and partial-zero observations cannot become a complete empty scan', async () => {

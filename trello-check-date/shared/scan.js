@@ -84,6 +84,7 @@ export function createScanner(api, { clock = Date.now } = {}) {
       const boards = boardId === undefined ? boardCache : boardCache.filter(b => b.id === boardId);
       if (boardId !== undefined && boards.length === 0) throw new ApiError('inconsistent');
       const rows = [];
+      const observedItemIds = new Set();
       const completedBoardIds = [];
       const failedBoards = [];
       const unverifiedBoardIds = [];
@@ -95,6 +96,12 @@ export function createScanner(api, { clock = Date.now } = {}) {
           const result = await readBoard(api, board,
             { signal: workSignal, now: startedAt, strategy });
           check();
+          // A card can move between board reads. Do not count the same item
+          // twice or silently choose which board currently owns it.
+          if (result.rows.some(row => observedItemIds.has(row.itemId))) {
+            throw new ApiError('inconsistent');
+          }
+          for (const row of result.rows) observedItemIds.add(row.itemId);
           rows.push(...result.rows);
           if (result.issues.length) unverifiedBoardIds.push(board.id);
           else completedBoardIds.push(board.id);
