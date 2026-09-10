@@ -11,10 +11,14 @@ and pagination/exhaustion also remain pending, so the Phase 1 exit is not closed
 
 Phase 2 domain and scan modules implement validated overdue observations, archive
 filtering, targeted fallback lookup, board caching, partial results and cancellation.
-They are not connected to the preview UI yet. Collection completeness remains
-explicitly unverified, including empty responses: pagination and its multiple-page
+The preview now offers a sortable table for selected-board or all-board scans,
+alongside the original integration check. Collection completeness remains explicitly
+unverified, including empty responses: pagination and its multiple-page
 and repeated-cursor tests are still to be implemented against a verified endpoint
-contract. Phase 2 is therefore partial; Phase 3's table remains outstanding.
+contract. Phase 2 is therefore partial. Phase 3's table, progress, partial-result
+notices, refresh and cancellation are implemented; the combined live scan query
+and displayed overdue results still need user verification. Scans start from an
+explicit button, allowing a selected-board read without an automatic account scan.
 Phase 4's Pages workflow completed all three jobs successfully in the first
 configured deployment; the step-by-step setup guide remains available.
 Prepared with GPT-6 against the build spec in commit

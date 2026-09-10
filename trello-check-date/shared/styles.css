@@ -1,7 +1,7 @@
 :root { color-scheme: light dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172b4d; background: #f4f6f8; line-height: 1.6; }
 * { box-sizing: border-box; }
 body { margin: 0; }
-main { max-width: 880px; margin: 0 auto; padding: 40px 24px; }
+main { max-width: 1120px; margin: 0 auto; padding: 40px 24px; }
 h1 { font-size: clamp(1.6rem, 5vw, 2.3rem); letter-spacing: -.035em; line-height: 1.2; margin: 12px 0 20px; }
 h2 { font-size: 1.15rem; margin-top: 0; }
 p { margin: 0 0 18px; }
@@ -14,10 +14,24 @@ button { border: 1px solid transparent; background: #0c66e4; color: #fff; paddin
 button:hover { background: #0055cc; }
 button.secondary { color: #172b4d; background: #e9edf2; }
 button:disabled { opacity: .55; cursor: default; }
-button:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid #388bff; outline-offset: 3px; }
+button:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible, .table-scroll:focus-visible { outline: 3px solid #388bff; outline-offset: 3px; }
 label { display: block; margin-bottom: 8px; font-weight: 600; }
 select { max-width: 100%; width: 100%; padding: 8px; color: inherit; background: inherit; border: 1px solid #8590a2; }
-#progress { margin-top: 20px; }
+#progress, #scan-progress { margin-top: 20px; }
+.notice { border-left: 4px solid #b65c02; padding: 8px 12px; background: #fff4e5; color: #6b3d00; }
+.table-scroll { overflow-x: auto; margin-bottom: 16px; }
+table { border-collapse: collapse; width: 100%; min-width: 700px; text-align: left; }
+caption { text-align: left; margin-bottom: 12px; font-weight: 600; }
+th, td { border-bottom: 1px solid #d5dbe3; padding: 12px; vertical-align: top; overflow-wrap: anywhere; }
+th { white-space: nowrap; }
+th button { background: transparent; color: inherit; padding: 6px; }
+th button:hover { background: #e9edf2; }
+th[aria-sort="ascending"] button::after { content: ' ↑'; }
+th[aria-sort="descending"] button::after { content: ' ↓'; }
+td:first-child { min-width: 190px; }
+td:nth-child(4) { min-width: 160px; }
+a { color: #0c66e4; }
+.checklist-name { display: block; color: #44546f; margin-top: 4px; }
 summary { cursor: pointer; font-weight: 600; }
 pre { font-size: .85rem; overflow-x: auto; background: #f4f6f8; padding: 16px; }
 [hidden] { display: none !important; }
@@ -28,4 +42,9 @@ pre { font-size: .85rem; overflow-x: auto; background: #f4f6f8; padding: 16px; }
   .eyebrow, .scope, .footnote { color: #b6c2cf; }
   pre { background: #1d2125; }
   button.secondary { background: #38414a; color: #dee4ea; }
+  .notice { background: #332e1b; color: #f5cd47; border-color: #d97008; }
+  th, td { border-color: #454f59; }
+  th button:hover { background: #38414a; }
+  a { color: #85b8ff; }
+  .checklist-name { color: #b6c2cf; }
 }

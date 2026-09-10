@@ -3,21 +3,32 @@
 A personal, read-only Trello Power-Up for overdue checklist items across open
 boards, open lists, and open cards, for all assignees.
 
-**Current milestone: connection preview.** The board button opens a fullscreen
-setup view with SDK authorization and a board integration check. It reports
-response shapes and counts only. It does not yet display an overdue table or
-certify an account-wide scan. A single-board live check confirmed the original
+**Current milestone: overdue table preview.** The board button opens a fullscreen
+view with SDK authorization, selected-board and all-board scan controls, and the
+original counts-only integration check. The table lists overdue observations;
+it does not yet certify collection completeness. A single-board live check confirmed the original
 checklist item projection, and the user reported opening the modal twice.
 Archive/join classification, endpoint completeness and broader live acceptance
 remain pending. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md).
 
-The next milestone's domain and scan modules are present in `shared/overdue.js`
-and `shared/scan.js`, with synthetic tests. They validate overdue dates and parent
+The domain and scan modules are in `shared/overdue.js` and `shared/scan.js`, with
+synthetic tests. They validate overdue dates and parent
 archive states, resolve fallback card references, cache board listings in memory,
 and cancel replaced scans. They support multiple boards or an explicit board ID.
-They are not yet connected to the preview, and always mark collection completeness
-unverified until the endpoint pagination contract is established. No new setup or
-additional test board is needed to continue this implementation work.
+Scans always mark collection completeness unverified until the endpoint pagination
+contract is established. The current UI uses the nested request strategy; the
+explicit fallback remains available to module callers and tests.
+
+After connecting, choose a board and click **Scan selected board**, or use
+**Scan all boards**. Sort any table column using its header button; card links open
+in a new tab. Dates use your local timezone, and Days overdue counts elapsed
+24-hour periods, with `<1` for less than a day. **Refresh results** reruns the last
+scope using cached board listings; **Reload board list** also refreshes that list
+and clears displayed results. **Cancel scan** stops the current scan.
+
+The completeness notice remains visible even when every requested board returned
+valid data. Zero observed rows are not presented as a complete "Nothing overdue"
+result. No additional setup or second test board is required to use the preview.
 
 **Start here:** [Step-by-step GitHub Pages and Trello setup](SETUP.md), with the
 exact URLs and settings for `jonjoet/web-plugins`. This route needs only a browser.
@@ -142,9 +153,9 @@ browser; pass `PLAYWRIGHT_MODULE`, `BROWSER_EXECUTABLE`, `TEST_SITE_DIR`, and
 and API and checks the built site at its production subpath. This does not test
 real Trello iframe permissions or consent.
 
-## Planned overdue behavior and reuse
+## Overdue behavior and reuse
 
-The completed view will include incomplete items whose due time is strictly
+The preview includes incomplete items whose due time is strictly
 before one frozen scan timestamp. Due dates display in local time; Days overdue
 counts elapsed 24-hour periods (`<1` below a full day). Archived boards, lists,
 and cards are excluded. Parent-card completion and item assignee do not change
@@ -154,7 +165,9 @@ Each HTML file beneath `apps/` is discovered automatically by the Vite build.
 Another app can add `apps/<name>/connector.html` and a view and import the small
 modules in `shared/`; no second app or framework is included. Shared `auth.js`
 owns SDK preparation, `trello-api.js` provides bounded read-only requests, and
-`ui.js` provides sanitized messages. The integration probe is separate from the
-future overdue domain and scan implementation.
+`ui.js` provides sanitized messages and result summaries. `overdue.js` handles
+domain validation and normalization, `scan.js` coordinates observations, and
+`results.js` renders the sortable table. The integration probe remains separate
+from the overdue scan implementation.
 
 See [SECURITY.md](SECURITY.md) for credential handling and revocation.

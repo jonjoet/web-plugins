@@ -85,6 +85,8 @@ export function createScanner(api, { clock = Date.now } = {}) {
       if (boardId !== undefined && boards.length === 0) throw new ApiError('inconsistent');
       const rows = [];
       const observedItemIds = new Set();
+      // Reserved for certified collection coverage. Successful observations
+      // currently enter unverifiedBoardIds; the view must count those as read.
       const completedBoardIds = [];
       const failedBoards = [];
       const unverifiedBoardIds = [];

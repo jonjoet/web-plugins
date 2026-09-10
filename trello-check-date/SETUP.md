@@ -4,9 +4,10 @@ These steps are for [jonjoet/web-plugins](https://github.com/jonjoet/web-plugins
 Everything can be done in your browser; no local Node or Docker installation is
 needed for this route.
 
-This release is a **connection and integration preview**. It opens from a Trello
-board, requests read-only access, and checks response fields/counts. The overdue
-table is still being built. The website and source are public; your Trello board
+This release is an **overdue table preview**. It opens from a Trello board,
+requests read-only access, and lists overdue observations for a selected board or
+all open boards. Collection completeness is not yet verified, and the original
+field/count integration check remains available. The website and source are public; your Trello board
 data and authorization token are not part of the published site.
 
 ## 1. Enable GitHub Pages
@@ -131,7 +132,7 @@ will never silently publish the synthetic-key verification build.
 2. Open **Power-Ups**, locate your private Power-Up in **Custom** (the label may
    vary), and add **Overdue Checklist Items**.
 3. Click the new **Overdue items** board button.
-4. In the fullscreen setup preview, click **Authorize (read-only)**.
+4. In the fullscreen preview, click **Authorize (read-only)**.
 5. Complete the Trello popup. Check that it requests read-only access. The SDK
    handles the token; there is nothing to paste back into this project.
 6. Close the modal, reopen it, and check that it remains connected.
@@ -146,19 +147,39 @@ See [the REST client documentation](https://developer.atlassian.com/cloud/trello
 
 1. Choose a board with known checklist items and at least one item due date.
 2. Click **Run integration check**, then expand the count report if needed.
-3. Repeat with a second board. An empty board cannot verify item fields.
+3. For cross-board acceptance, repeat with a second board. If you only use one
+   board, leave that acceptance check untested. An empty board cannot verify item fields.
 4. If suitable existing content is available, check an open card in an archived
    list. The report should count that case. The app does not create test data.
 5. Check that the board button icon is visible on both light and dark board
    backgrounds. In the report, `collectionCompleteness: "unverified"` is expected:
    this preview does not prove pagination or return an overdue total.
-6. Report whether consent, reopening, and both board checks worked. You may share
+6. Report whether consent, reopening, and the board checks you performed worked. You may share
    the displayed counts-only report. Do not send tokens, authorization URLs,
    browser storage, network exports, or raw board/card data.
 
 Missing item arrays, invalid records, or HTTP errors are outcomes to investigate,
 not evidence of zero overdue items. Targeted fallback-card classification and
 large-board paging/exhaustion remain pending even when these checks pass.
+
+## 8. View overdue items
+
+1. Reopen the Power-Up after the updated deployment finishes.
+2. Choose your board and click **Scan selected board**. Use **Scan all boards**
+   only if you want the broader scan; no second test board is needed.
+3. The table shows incomplete, past-due items on open cards in open lists.
+   Completed items and undated/future items are excluded, for all assignees.
+4. Click a column heading to sort, or focus it and press Enter. Card links open in
+   a new tab. Dates use your local timezone; Days overdue is elapsed 24-hour
+   periods rather than calendar boundaries.
+5. Compare the selected-board observations with the items you know in Trello.
+   The completeness notice is expected in this release, even if all board reads
+   succeed. Zero observed rows do not prove that nothing is overdue.
+6. **Refresh results** reruns the same scope. **Reload board list** refreshes board
+   membership and clears the current results. **Cancel scan** stops a running scan.
+
+The combined scan projection and table are newer than the original shape probe;
+the earlier successful integration report does not by itself verify the new view.
 
 ## Troubleshooting and revocation
 

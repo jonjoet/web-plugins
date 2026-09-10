@@ -140,8 +140,9 @@ the Git root's `.github/workflows/`.
 3. The modal:
    - On load, checks `getRestApi().getToken()`. If not authorized, shows a single
      **Authorize (read-only)** button that calls `authorize({ scope: "read" })`.
-   - Once authorized, fetches all boards, then all cards + checklists across those
-     boards (§7), flattens to checklist items, filters to **incomplete + past-due**.
+   - Once authorized, lists open boards. **Scan all boards** reads cards and
+     checklists across them (§7); **Scan selected board** reads only the chosen
+     board. Both flatten to checklist items and filter to **incomplete + past-due**.
    - Renders a **sortable table**: columns = *Item*, *Card*, *Board*, *Due*,
      *Days overdue*. Default sort: most overdue first. *Card* links to the card
      (open in Trello). Show a small count summary ("14 overdue items").
@@ -193,7 +194,9 @@ Selected nested item projection, with endpoint completeness still pending:
 
 Both candidate strategies read `GET /boards/{id}/lists?filter=all&fields=closed`.
 Missing list references or invalid archive states make the board incomplete.
-The fallback is `GET /boards/{id}/checklists` joined to open-card metadata. Resolve
+The fallback is `GET /boards/{id}/checklists?checkItems=all&checkItem_fields=name,state,due`
+joined to open-card metadata. These parameters explicitly select the documented
+item defaults; pinning them does not establish live fallback shape verification. Resolve
 each missing `idCard` with a bounded GET retaining `idBoard`, `idList`, and `closed`;
 exclude only a positively archived card/list. Missing open cards, moved cards,
 failed lookups, and unresolved lists make the result incomplete.
@@ -207,7 +210,11 @@ that run. Fallback join misses were present and remain unclassified by the live
 probe. A small-board shape probe alone does not establish pagination. The current
 scan modules return observed rows with `complete: false` and
 `collection-completeness-unverified`; they cannot certify an empty success.
-The modal remains the integration preview until the table is connected.
+The modal displays these observations in a sortable table, with an explicit
+incompleteness notice. Scans are user-triggered for a selected board or all open
+boards; the existing counts-only integration check remains available separately.
+The UI currently uses the nested strategy. The fallback is available in the scan
+module for explicit callers and testing, and is not silently selected on an error.
 
 ## 8. Security requirements (hard rules)
 

@@ -106,6 +106,8 @@ export function createApi({ appKey, token, fetchImpl = fetch, now = Date.now,
       filter: 'open', fields: 'name,url,idList,idBoard,closed',
     }, signal),
     lists: (id, signal) => get(boardPath(id, 'lists'), { filter: 'all', fields: 'closed' }, signal),
-    checklists: (id, signal) => get(boardPath(id, 'checklists'), {}, signal),
+    checklists: (id, signal) => get(boardPath(id, 'checklists'), {
+      checkItems: 'all', checkItem_fields: 'name,state,due',
+    }, signal),
   };
 }

@@ -8,11 +8,11 @@
   </head>
   <body>
     <main>
-      <p class="eyebrow">Overdue checklist items · Setup preview</p>
-      <h1>Connect your Trello account</h1>
-      <p>This preview checks the connection needed for your overdue checklist view.
-        The overdue table will follow after integration verification.</p>
-      <p class="scope">The planned view covers incomplete, overdue items across open boards,
+      <p class="eyebrow">Overdue checklist items · Preview</p>
+      <h1>Find overdue checklist items</h1>
+      <p>Scan a selected board or all open boards. Results are a preview and may be
+        incomplete while collection coverage is being verified.</p>
+      <p class="scope">Includes incomplete, overdue items on open boards,
         lists, and cards, for all assignees.</p>
       <section class="panel" aria-labelledby="connection-title">
         <h2 id="connection-title">Connection</h2>
@@ -25,12 +25,18 @@
         </div>
       </section>
       <section id="probe-panel" class="panel" aria-labelledby="probe-title" hidden>
-        <h2 id="probe-title">Check a board</h2>
-        <p>Choose a board with checklist items, including a due date. This reads a sample
-          of API responses and reports counts and field availability. It cannot establish
-          that all items were returned or give an overdue total.</p>
+        <h2 id="probe-title">Choose what to read</h2>
         <label for="board">Board</label>
         <select id="board"></select>
+        <div class="actions">
+          <button id="scan" disabled>Scan selected board</button>
+          <button id="scan-all" class="secondary" disabled>Scan all boards</button>
+          <button id="scan-refresh" class="secondary" hidden>Refresh results</button>
+          <button id="scan-cancel" class="secondary" hidden>Cancel scan</button>
+        </div>
+        <p id="scan-progress" role="status" aria-live="polite"></p>
+        <p class="footnote">The integration check compares API response fields and returns a
+          counts-only report for troubleshooting. It does not calculate overdue items.</p>
         <div class="actions">
           <button id="probe" disabled>Run integration check</button>
           <button id="reload-boards" class="secondary">Reload board list</button>
@@ -42,6 +48,7 @@
           <pre id="report"></pre>
         </details>
       </section>
+      <section id="scan-results" class="panel" aria-label="Scan results" hidden></section>
       <p class="footnote">Read-only access. Trello manages authorization in private plugin data.
         Forgetting authorization removes the stored token; revoke access in your Trello account settings.</p>
     </main>

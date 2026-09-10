@@ -11,6 +11,7 @@ const messages = {
   'rate-limit': 'Trello requested a long retry delay. Wait a minute before trying again.',
   'retry-exhausted': 'Trello is busy or rate-limited. Wait briefly, then try again.',
   http: 'Trello could not read this resource. Check board access and try again.',
+  inconsistent: 'Trello data changed or a card or list could not be resolved. Refresh to try again.',
 };
 
 export function messageFor(error) {
@@ -18,3 +19,19 @@ export function messageFor(error) {
 }
 
 export function show(element, visible) { element.hidden = !visible; }
+
+export function scanSummary(result) {
+  const failed = result.failedBoards.length;
+  const read = result.completedBoardIds.length + result.unverifiedBoardIds.length;
+  const complete = result.complete && failed === 0
+    && result.unverifiedBoardIds.length === 0 && result.issues.length === 0;
+  const count = result.rows.length;
+  const summary = complete && count === 0 ? 'Nothing overdue.'
+    : count === 0 ? 'No overdue items found in the returned data.'
+      : `${count} overdue ${count === 1 ? 'item' : 'items'} found.`;
+  return { summary, complete,
+    progress: `Read ${read} of ${result.totalBoards} ${result.totalBoards === 1 ? 'board' : 'boards'}.`,
+    coverage: complete ? '' : failed
+      ? `${failed} of ${result.totalBoards} boards could not be checked. Results may be incomplete.`
+      : 'Some items may be missing; completeness has not been verified.' };
+}

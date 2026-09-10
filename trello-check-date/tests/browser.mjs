@@ -36,7 +36,8 @@ const card = { id: id('b'), name: 'Synthetic card', url: 'https://trello.com/c/f
   checklists: [{ id: id('d'), name: 'Checklist', checkItems: [{ id: id('e'), name: 'Item',
     state: 'incomplete', due: '2026-01-01T00:00:00Z' }] }] };
 
-async function fixture({ returning = false, denial = '', storage = false, apiStatus = 0, malformed = false } = {}) {
+async function fixture({ returning = false, denial = '', storage = false, apiStatus = 0,
+  malformed = false, listsClosed = true, items, boardSet = [board] } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   const logs = [];
@@ -69,11 +70,18 @@ async function fixture({ returning = false, denial = '', storage = false, apiSta
       await route.fulfill({ status: apiStatus, body: apiStatus === 400 ? 'invalid key' : 'private error' }); return;
     }
     let body;
-    if (url.pathname.endsWith('/members/me/boards')) body = [board];
-    else if (url.pathname.endsWith('/lists')) body = [{ id: id('c'), closed: true }];
+    if (url.pathname.endsWith('/members/me/boards')) body = boardSet;
+    else if (url.pathname.endsWith('/lists')) body = [{ id: id('c'), closed: listsClosed }];
     else if (url.pathname.endsWith('/checklists')) body = [{ idCard: id('b') }];
     else if (url.pathname.endsWith('/cards')) {
       body = [structuredClone(card)];
+      body[0].idBoard = url.pathname.split('/')[3];
+      if (items) body[0].checklists[0].checkItems = structuredClone(items);
+      if (body[0].idBoard !== board.id) {
+        body[0].id = id('9');
+        body[0].checklists[0].id = id('8');
+        for (const item of body[0].checklists[0].checkItems) item.id = `7${item.id.slice(1)}`;
+      }
       if (malformed && url.searchParams.get('checklist_fields')) delete body[0].checklists[0].checkItems;
     } else throw new Error('Unexpected endpoint');
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
@@ -193,6 +201,143 @@ try {
     assert.equal(await page.locator('#report-details').isVisible(), false);
     assert.match(await page.locator('#progress').innerText(), /cancelled/);
   });
+  const instant = Date.now();
+  const scanItems = [
+    { id: id('1'), name: 'Alpha <img src=x onerror=alert(1)>', state: 'incomplete',
+      due: new Date(instant - 10.5 * 86400000).toISOString() },
+    { id: id('2'), name: 'Zulu item', state: 'incomplete',
+      due: new Date(instant - 2.5 * 86400000).toISOString() },
+    { id: id('3'), name: 'Complete item', state: 'complete', due: new Date(instant - 86400000).toISOString() },
+    { id: id('4'), name: 'Future item', state: 'incomplete', due: new Date(instant + 86400000).toISOString() },
+  ];
+  await scenario('selected-board table, keyboard and numeric sorting, links, safe names and responsive layout',
+    { returning: true, listsClosed: false, items: scanItems }, async ({ page }) => {
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      assert.equal(await page.locator('#scan-summary').innerText(), '2 overdue items found.');
+      assert.match(await page.locator('#scan-time').innerText(), /Read 1 of 1 board/);
+      assert.match(await page.locator('#scan-coverage').innerText(), /completeness has not been verified/);
+      const rows = page.locator('tbody tr');
+      assert.equal(await rows.count(), 2);
+      assert.equal(await page.locator('img').count(), 0);
+      assert.ok((await rows.first().innerText()).includes(scanItems[0].name));
+      const itemSort = page.getByRole('button', { name: 'Item', exact: true });
+      await itemSort.focus(); await page.keyboard.press('Enter'); await page.keyboard.press('Enter');
+      assert.ok((await rows.first().innerText()).startsWith('Zulu'));
+      assert.equal(await itemSort.evaluate(node => node === document.activeElement), true);
+      assert.equal(await itemSort.evaluate(node => node.parentElement.getAttribute('aria-sort')), 'descending');
+      const daysSort = page.getByRole('button', { name: 'Days overdue', exact: true });
+      await daysSort.click();
+      assert.deepEqual(await page.locator('tbody tr td:last-child').allTextContents(), ['10', '2']);
+      await daysSort.click();
+      assert.deepEqual(await page.locator('tbody tr td:last-child').allTextContents(), ['2', '10']);
+      const link = rows.first().getByRole('link');
+      assert.equal(await link.getAttribute('href'), card.url);
+      assert.equal(await link.getAttribute('target'), '_blank');
+      assert.equal(await link.getAttribute('rel'), 'noopener noreferrer');
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.screenshot({ path: resolve(output, 'synthetic-scan-mobile.png'), fullPage: true });
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.screenshot({ path: resolve(output, 'synthetic-scan-desktop.png'), fullPage: true });
+      const before = await page.locator('#scan-summary').innerText();
+      await page.getByRole('button', { name: 'Run integration check' }).click();
+      await page.locator('#report-details').waitFor({ state: 'visible' });
+      assert.equal(await page.locator('#scan-summary').innerText(), before);
+    });
+  const secondBoard = { id: id('f'), name: 'Second board', closed: false };
+  await scenario('explicit board selection reads only that board and refresh reuses board cache',
+    { returning: true, listsClosed: false, boardSet: [board, secondBoard] }, async ({ page, requests }) => {
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.locator('#board').selectOption(secondBoard.id);
+      await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      assert.ok(requests.filter(path => path.includes('/boards/')).every(path => path.includes(secondBoard.id)));
+      const boardReads = requests.filter(path => path.endsWith('/members/me/boards')).length;
+      await page.getByRole('button', { name: 'Refresh results', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      assert.equal(requests.filter(path => path.endsWith('/members/me/boards')).length, boardReads);
+      assert.equal(await page.locator('#scan-scope').innerText(), 'Board: Second board');
+      await page.getByRole('button', { name: 'Reload board list', exact: true }).click();
+      await page.waitForFunction(() => !document.querySelector('#scan').disabled);
+      assert.equal(requests.filter(path => path.endsWith('/members/me/boards')).length, boardReads + 1);
+      assert.equal(await page.locator('#scan-results').isVisible(), false);
+    });
+  await scenario('all-board scan reports a failed board and preserves successful observations',
+    { returning: true, listsClosed: false, boardSet: [board, secondBoard] }, async ({ page, context }) => {
+      await context.route(`https://api.trello.com/1/boards/${secondBoard.id}/lists?*`, route =>
+        route.fulfill({ status: 403, body: 'private detail' }));
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.getByRole('button', { name: 'Scan all boards', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      assert.equal(await page.locator('#scan-summary').innerText(), '1 overdue item found.');
+      assert.match(await page.locator('#scan-coverage').innerText(), /1 of 2 boards could not be checked/);
+      assert.match(await page.locator('#scan-errors').innerText(), /Second board/);
+      assert.doesNotMatch(await page.locator('#scan-errors').innerText(), /private detail/);
+      assert.match(await page.locator('#scan-time').innerText(), /Read 1 of 2 boards/);
+    });
+  await scenario('zero observed rows remain unverified rather than empty success',
+    { returning: true, listsClosed: false, items: [scanItems[2]] }, async ({ page }) => {
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      assert.equal(await page.locator('#scan-summary').innerText(), 'No overdue items found in the returned data.');
+      assert.doesNotMatch(await page.locator('#scan-results').innerText(), /Nothing overdue/);
+      assert.equal(await page.locator('table').isVisible(), false);
+      assert.equal(await page.locator('#scan-coverage').isVisible(), true);
+    });
+  await scenario('token revoked during a scan clears results and returns to authorize',
+    { returning: true, listsClosed: false }, async ({ page, context }) => {
+      await context.route('https://api.trello.com/1/boards/*/cards?*', route =>
+        route.fulfill({ status: 401, body: 'invalid token' }));
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await page.getByText('Authorization has expired or been revoked.', { exact: false }).waitFor();
+      assert.equal(await page.evaluate(() => window.calls.includes('clear')), true);
+      assert.equal(await page.locator('#scan-results').isVisible(), false);
+      assert.equal(await page.locator('#authorize').isVisible(), true);
+    });
+  await scenario('a cancelled scan cannot publish a late response',
+    { returning: true, listsClosed: false }, async ({ page, context }) => {
+      let release;
+      const blocked = new Promise(resolve => { release = resolve; });
+      await context.route('https://api.trello.com/1/boards/*/cards?*', async route => {
+        await blocked;
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify([card]) }).catch(() => {});
+      });
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await page.getByRole('button', { name: 'Cancel scan', exact: true }).click();
+      release();
+      await page.waitForTimeout(350);
+      assert.equal(await page.locator('#scan-results').isVisible(), false);
+      assert.match(await page.locator('#scan-progress').innerText(), /cancelled/);
+      assert.equal(await page.locator('#scan').isEnabled(), true);
+    });
+  await scenario('refresh during a pending scan publishes only the newer result',
+    { returning: true, listsClosed: false }, async ({ page, context }) => {
+      let release;
+      let entered;
+      const started = new Promise(resolve => { entered = resolve; });
+      const blocked = new Promise(resolve => { release = resolve; });
+      let reads = 0;
+      await context.route('https://api.trello.com/1/boards/*/cards?*', async route => {
+        reads++;
+        const body = structuredClone(card);
+        if (reads === 1) { entered(); await blocked; }
+        else body.checklists[0].checkItems = scanItems;
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify([body]) }).catch(() => {});
+      });
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await started;
+      await page.getByRole('button', { name: 'Refresh results', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      release();
+      await page.waitForTimeout(350);
+      assert.equal(await page.locator('#scan-summary').innerText(), '2 overdue items found.');
+      assert.equal(await page.locator('tbody tr').count(), 2);
+    });
   await writeFile(resolve(output, 'browser-results.json'), JSON.stringify(results, null, 2));
   console.log(`${results.length} synthetic browser scenarios passed.`);
 } finally {

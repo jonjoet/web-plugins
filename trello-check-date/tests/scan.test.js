@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { ApiError, createApi } from '../shared/trello-api.js';
 import { cardUrl, daysOverdue, dueTimestamp, normalizeBoard } from '../shared/overdue.js';
 import { createScanner, readBoard } from '../shared/scan.js';
+import { scanSummary } from '../shared/ui.js';
 
 const id = n => n.toString(16).padStart(24, '0');
 const now = Date.parse('2026-09-10T12:00:00Z');
@@ -277,9 +278,27 @@ test('scan transport uses the actual GET wrapper with archive fields and narrow 
   const nested = requests.find(r => r.parsed.searchParams.has('checklists'));
   assert.equal(nested.parsed.searchParams.get('checklist_fields'), 'name');
   assert.equal(nested.parsed.searchParams.get('fields'), 'name,url,idList,idBoard,closed');
+  const fallback = requests.find(r => r.parsed.pathname.endsWith('/checklists'));
+  assert.equal(fallback.parsed.searchParams.get('checkItems'), 'all');
+  assert.equal(fallback.parsed.searchParams.get('checkItem_fields'), 'name,state,due');
   assert.equal(requests.at(-1).parsed.searchParams.get('fields'), 'idBoard,idList,closed');
   assert.ok(requests.every(r => r.options.method === 'GET' && r.parsed.origin === 'https://api.trello.com'));
   for (let i = 1; i < requests.length; i++) assert.ok(requests[i].time - requests[i - 1].time >= 200);
   assert.throws(() => api.card('../bad'), { code: 'shape' });
   assert.throws(() => api.scanCards('../bad'), { code: 'shape' });
+});
+
+test('summaries distinguish successful observations from certified coverage and empty success', () => {
+  const result = { rows: [], completedBoardIds: [], unverifiedBoardIds: [id(1)],
+    failedBoards: [], totalBoards: 1, complete: false, issues: ['collection-completeness-unverified'] };
+  assert.equal(scanSummary(result).progress, 'Read 1 of 1 board.');
+  assert.equal(scanSummary(result).summary, 'No overdue items found in the returned data.');
+  assert.equal(scanSummary(result).complete, false);
+  const complete = { ...result, completedBoardIds: [id(1)], unverifiedBoardIds: [], complete: true, issues: [] };
+  assert.equal(scanSummary(complete).summary, 'Nothing overdue.');
+  assert.equal(scanSummary(complete).coverage, '');
+  assert.equal(scanSummary({ ...complete, rows: [{}] }).summary, '1 overdue item found.');
+  const failed = { ...result, unverifiedBoardIds: [], failedBoards: [{ boardId: id(1) }] };
+  assert.match(scanSummary(failed).coverage, /1 of 1 boards could not be checked/);
+  assert.equal(scanSummary({ ...failed, complete: true }).complete, false);
 });
