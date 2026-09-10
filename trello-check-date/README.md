@@ -31,8 +31,8 @@ Completed checklist items and archived boards, lists and cards are excluded in
 every mode. Changing modes uses the last scan without new Trello requests, resets
 sorting to due ascending (oldest first, undated last), and preserves the scan's
 frozen time. Sort any table column using its header button. Each plain card name
-has **Open here** and **Open in new tab** controls. Open here navigates the current
-Trello tab to the parent card; opening in a new tab keeps the results available.
+has **Open here** and **Open in new tab** controls. Open here closes the Power-Up
+before navigating the current Trello tab to the parent card; opening in a new tab keeps the results available.
 Both work with keyboard activation. If Open here fails, retry or use the new-tab
 option. Dates use your local timezone, and Days overdue counts elapsed
 24-hour periods, with `<1` for less than a day. A dash means no due date or not
@@ -52,9 +52,14 @@ also applies when the duplicate is undated or upcoming and hidden by the selecte
 display mode. **Refresh results** retries the scan. This cross-board duplicate
 case does not arise in a selected-board scan.
 
-Open here uses the SDK's [Trello navigation API](https://developer.atlassian.com/cloud/trello/power-ups/ui-functions/navigation/).
-Synthetic browser checks verify that request and the separate new-tab behavior;
-navigation from the real Trello modal still needs live confirmation.
+Open here uses the SDK's [Trello navigation API](https://developer.atlassian.com/cloud/trello/power-ups/ui-functions/navigation/)
+from the persistent connector after closing the modal. It requires browser
+BroadcastChannel support for a temporary connection between the two frames;
+no token or persistent storage is involved. **Reload the Trello board once after
+updating**, then reopen the Power-Up, so both frames use the current code. If
+navigation fails after closure, a Trello alert explains how to recover.
+The original navigate-with-modal-open behavior failed in live use. Synthetic
+checks now destroy the modal iframe before navigating; this fix still needs live confirmation.
 
 **Start here:** [Step-by-step GitHub Pages and Trello setup](SETUP.md), with the
 exact URLs and settings for `jonjoet/web-plugins`. This route needs only a browser.

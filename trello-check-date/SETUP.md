@@ -174,7 +174,7 @@ large-board paging/exhaustion remain pending even when these checks pass.
    in every mode, for all assignees. Switching modes uses the last scan without
    fetching again; use Refresh results to update the data and overdue timestamp.
 4. Click a column heading to sort, or focus it and press Enter. Beside each plain
-   card name, **Open here** navigates the existing Trello tab to that card;
+   card name, **Open here** closes the Power-Up, then navigates the existing Trello tab to that card;
    **Open in new tab** keeps the results available in the original tab.
    Both controls support keyboard activation. If Open here fails, retry or use
    Open in new tab. Dates use your local timezone; Days overdue is elapsed 24-hour
@@ -186,11 +186,14 @@ large-board paging/exhaustion remain pending even when these checks pass.
 6. **Refresh results** keeps the display mode and reruns the same scope. **Reload board list** refreshes board
    membership and clears the current results. **Cancel scan** stops a running scan.
 
-The v0.2.0 filters were reported working on the user's board. The new Open here
-navigation from the modal still needs live confirmation; synthetic checks do not
-establish live acceptance.
-Existing installations need only reopen the modal after deployment, with no new
-key, registration or consent scope.
+The v0.2.0 filters were reported working on the user's board. The first Open here
+implementation left the Power-Up covering the navigation in live use. The fix
+closes it first and needs another live check; synthetic checks do not establish
+live acceptance. **Reload the Trello board in the browser after deployment**, then
+reopen the Power-Up. Reopening just the modal does not update the persistent
+connector. No new key, registration or consent scope is needed. If navigation
+fails after the modal closes, a Trello alert directs you to reopen and use
+Open in new tab.
 
 If a card moves between boards during **Scan all boards**, the same active item
 can appear in two board reads. The second board is then reported as failed and

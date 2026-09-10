@@ -4,6 +4,7 @@ import { createApi } from '../../shared/trello-api.js';
 import { runProbe, validateBoards } from '../../shared/probe.js';
 import { createScanner } from '../../shared/scan.js';
 import { createResultsView } from '../../shared/results.js';
+import { openCardHere } from '../../shared/navigation.js';
 import { messageFor, show } from '../../shared/ui.js';
 import '../../shared/styles.css';
 
@@ -12,7 +13,7 @@ const ids = ['status', 'authorize', 'retry', 'cancel-auth', 'disconnect', 'probe
   'scan', 'scan-all', 'scan-refresh', 'scan-cancel', 'scan-progress', 'scan-results'];
 const ui = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
 const results = createResultsView(ui['scan-results'], {
-  openHere: url => window.TrelloPowerUp.iframe({ appKey: TRELLO_APP_KEY, appName: APP_NAME }).navigate({ url }),
+  openHere: url => openCardHere(window.TrelloPowerUp.iframe({ appKey: TRELLO_APP_KEY, appName: APP_NAME }), url),
 });
 let auth;
 let api;

@@ -158,10 +158,13 @@ the Git root's `.github/workflows/`.
      Undated Due and non-overdue Days overdue cells show a dash. Blank numeric
      cells remain last in either sort direction. *Card* shows its plain name
      followed by **Open here** and **Open in new tab** controls. The former uses
-     `t.navigate({ url })` to navigate the existing Trello tab, including cards
-     on another board; the latter uses a validated link with `noopener noreferrer`.
-     If SDK navigation fails, show a sanitized row-level message and allow retry
-     or the new-tab option. Headings, captions and counts reflect the display mode.
+     the persistent connector to close the modal before calling `t.navigate({ url })`,
+     including cards on another board. A random per-modal BroadcastChannel carries
+     only the card URL, validated by sender and receiver; no persistent storage or
+     token transfer. The latter control uses a link with `noopener noreferrer`.
+     Failures before closure show a sanitized row-level message; failures after
+     closure use a Trello alert with guidance to reopen and use the new-tab option.
+     Headings, captions and counts reflect the display mode.
    - **Empty state**, only after a complete scan: "Nothing overdue 🎉". **Error state**: human-readable message +
      a retry button. **Loading state**: spinner/skeleton while fetching.
 

@@ -1,5 +1,6 @@
 import { TRELLO_APP_KEY } from 'virtual:trello-config';
 import { APP_NAME } from '../../shared/auth.js';
+import { openResultsModal } from '../../shared/navigation.js';
 import navyIcon from './icons/navy.svg';
 import whiteIcon from './icons/white.svg';
 
@@ -9,7 +10,7 @@ export function capabilities(base = import.meta.env.BASE_URL) {
       // Trello's keys name the board background, so use the contrasting ink.
       icon: { dark: whiteIcon, light: navyIcon },
       text: 'Overdue items',
-      callback: t => t.modal({
+      callback: t => openResultsModal(t, {
         fullscreen: true,
         url: `${base}apps/overdue-checklist/view.html`,
         title: 'Overdue checklist items',

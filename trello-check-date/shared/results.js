@@ -114,7 +114,7 @@ export function createResultsView(root, { openHere }) {
         here.disabled = true;
         error.textContent = '';
         try { await openHere(url); }
-        catch { error.textContent = 'Could not open this card here. Try again or use Open in new tab.'; }
+        catch { error.textContent = 'Could not open this card here. Reload the Trello board and try again, or use Open in new tab.'; }
         finally { here.disabled = false; }
       });
       actions.append(here, newTab);

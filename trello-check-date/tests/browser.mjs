@@ -37,7 +37,7 @@ const card = { id: id('b'), name: 'Synthetic card', url: 'https://trello.com/c/f
     state: 'incomplete', due: '2026-01-01T00:00:00Z' }] }] };
 
 async function fixture({ returning = false, denial = '', storage = false, apiStatus = 0,
-  malformed = false, listsClosed = true, items, boardSet = [board], navigationFailure = '' } = {}) {
+  malformed = false, listsClosed = true, items, boardSet = [board] } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   const logs = [];
@@ -47,7 +47,6 @@ async function fixture({ returning = false, denial = '', storage = false, apiSta
     contentType: 'text/javascript', body: `
       window.calls = []; window.token = ${returning ? JSON.stringify(canary) : 'null'};
       window.iframeCalls = [];
-      window.navigationFailure = ${JSON.stringify(navigationFailure)};
       window.TrelloPowerUp = {
         initialize(caps, options) { window.caps = caps; window.initOptions = options; },
         iframe(options) {
@@ -55,12 +54,8 @@ async function fixture({ returning = false, denial = '', storage = false, apiSta
           if (window.iframeClient) return window.iframeClient;
           window.iframeOptions = options;
           return window.iframeClient = {
-          navigate(options) {
-            window.calls.push({navigate: options, active: navigator.userActivation.isActive});
-            if (window.navigationFailure === 'throw') throw new Error('private navigation error');
-            if (window.navigationFailure === 'reject') return Promise.reject(new Error('private navigation error'));
-            return Promise.resolve();
-          },
+          arg(name) { return JSON.parse(decodeURIComponent(location.hash.slice(1)) || '{}')[name]; },
+          navigate() { throw new Error('Navigation must run in the persistent connector'); },
           getRestApi: async () => ({
           getToken: async () => { if (${storage}) throw new Error('private SDK error'); return window.token; },
           clearToken: async () => { window.calls.push('clear'); window.token = null; },
@@ -110,6 +105,49 @@ async function scenario(name, options, fn) {
     assert.ok(!(await f.page.locator('body').innerText()).includes(canary), 'Token reached UI');
     results.push({ name, passed: true });
   } finally { await f.context.close(); }
+}
+
+// Use the built connector and view in separate browsing contexts. Closing the
+// modal really destroys its iframe before the connector can navigate.
+async function mountModal(page, { closeFailure = '', navigateFailure = false } = {}) {
+  await page.goto(`${origin}${base}apps/overdue-checklist/connector.html`);
+  await page.waitForFunction(() => window.caps);
+  await page.evaluate(async ({ closeFailure, navigateFailure }) => {
+    window.hostCalls = [];
+    window.closeFailure = closeFailure;
+    window.navigateFailure = navigateFailure;
+    window.hostT = {
+      modal(options) {
+        window.modalOptions = options;
+        const frame = document.createElement('iframe');
+        frame.id = 'test-modal';
+        frame.style = 'width:100%;height:850px';
+        frame.src = `${options.url}#${encodeURIComponent(JSON.stringify(options.args))}`;
+        document.body.append(frame);
+        return Promise.resolve();
+      },
+      closeModal() {
+        window.hostCalls.push({ close: true });
+        if (window.closeFailure === 'throw') throw new Error('private close error');
+        if (window.closeFailure === 'reject') return Promise.reject(new Error('private close error'));
+        const frame = document.getElementById('test-modal');
+        window.closedFrameOptions = frame.contentWindow.iframeCalls;
+        frame.remove();
+        window.modalOptions.callback();
+        return Promise.resolve();
+      },
+      navigate(options) {
+        if (document.getElementById('test-modal')) throw new Error('Modal still covers the card');
+        window.hostCalls.push({ navigate: options });
+        if (window.navigateFailure) return Promise.reject(new Error('private navigation error'));
+        return Promise.resolve();
+      },
+      alert(options) { window.hostCalls.push({ alert: options }); return Promise.resolve(); },
+    };
+    const [button] = await window.caps['board-buttons']();
+    await button.callback(window.hostT);
+  }, { closeFailure, navigateFailure });
+  return (await page.waitForSelector('#test-modal')).contentFrame();
 }
 
 try {
@@ -317,14 +355,14 @@ try {
     });
   const secondBoard = { id: id('f'), name: 'Second board', closed: false };
   for (const otherBoard of [false, true]) {
-    await scenario(`card actions use SDK navigation and an isolated new tab (${otherBoard ? 'other' : 'current'} board)`,
+    await scenario(`connector closes the real modal before navigation; new tab stays isolated (${otherBoard ? 'other' : 'current'} board)`,
       { returning: true, listsClosed: false, boardSet: [board, secondBoard] },
       async ({ page, context, requests }) => {
-        await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
-        await page.locator('#board').selectOption(otherBoard ? secondBoard.id : board.id);
-        await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
-        await page.locator('#scan-results').waitFor({ state: 'visible' });
-        const row = page.locator('tbody tr').first();
+        const modal = await mountModal(page);
+        await modal.locator('#board').selectOption(otherBoard ? secondBoard.id : board.id);
+        await modal.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+        await modal.locator('#scan-results').waitFor({ state: 'visible' });
+        const row = modal.locator('tbody tr').first();
         assert.equal(await row.getByRole('link', { name: card.name, exact: true }).count(), 0);
         const here = row.getByRole('button', { name: `Open here: ${card.name}`, exact: true });
         const newTab = row.getByRole('link', { name: `Open in new tab: ${card.name}`, exact: true });
@@ -332,17 +370,8 @@ try {
           assert.ok((await control.boundingBox()).height >= 44);
         }
         const requestCount = requests.length;
-        await here.focus();
-        await page.keyboard.press('Enter');
-        await page.waitForFunction(() => window.calls.some(call => call.navigate));
-        const call = await page.evaluate(() => window.calls.find(call => call.navigate));
-        assert.deepEqual(call, { navigate: { url: card.url }, active: true });
         const config = { appKey: '0'.repeat(32), appName: 'Overdue Checklist Items' };
-        assert.deepEqual(await page.evaluate(() => window.iframeOptions), config);
-        assert.deepEqual(await page.evaluate(() => window.iframeCalls), [config, config]);
-        assert.equal(context.pages().length, 1, 'Open here must not create another tab');
-        assert.equal(requests.length, requestCount, 'Navigation makes no app REST request');
-        assert.equal(await here.isEnabled(), true);
+        assert.deepEqual(await modal.evaluate(() => window.iframeOptions), config);
         await context.route('https://trello.com/c/fixture', route => {
           assert.equal(route.request().headers().referer, undefined);
           return route.fulfill({ contentType: 'text/html', body: '<title>Synthetic Trello card</title>' });
@@ -354,35 +383,69 @@ try {
         await popup.waitForLoadState();
         assert.equal(popup.url(), card.url);
         assert.equal(await popup.evaluate(() => window.opener), null);
-        assert.equal(page.url(), `${origin}${base}apps/overdue-checklist/view.html`);
+        assert.equal(await modal.locator('#scan-results').isVisible(), true);
         await popup.close();
         if (!otherBoard) {
           await page.screenshot({ path: resolve(output, 'synthetic-card-actions-mobile.png'), fullPage: true });
           await page.setViewportSize({ width: 1280, height: 1100 });
           await page.screenshot({ path: resolve(output, 'synthetic-card-actions-desktop.png'), fullPage: true });
         }
+        await here.focus();
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(() => window.hostCalls.some(call => call.navigate));
+        assert.deepEqual(await page.evaluate(() => window.hostCalls), [
+          { close: true }, { navigate: { url: card.url } },
+        ]);
+        assert.equal(await page.locator('#test-modal').count(), 0);
+        assert.deepEqual(await page.evaluate(() => window.closedFrameOptions), [config, config]);
+        assert.equal(context.pages().length, 1, 'Open here must not create another tab');
+        assert.equal(requests.length, requestCount, 'Navigation makes no app REST request');
       });
   }
-  for (const navigationFailure of ['throw', 'reject']) {
-    await scenario(`navigation ${navigationFailure} is sanitized and retryable without losing scan results`,
-      { returning: true, listsClosed: false, navigationFailure }, async ({ page }) => {
-        await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
-        await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
-        await page.locator('#scan-results').waitFor({ state: 'visible' });
-        const here = page.getByRole('button', { name: `Open here: ${card.name}`, exact: true });
+  for (const closeFailure of ['throw', 'reject']) {
+    await scenario(`modal-close ${closeFailure} is sanitized and retryable without losing results`,
+      { returning: true, listsClosed: false }, async ({ page }) => {
+        const modal = await mountModal(page, { closeFailure });
+        await modal.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+        await modal.locator('#scan-results').waitFor({ state: 'visible' });
+        const here = modal.getByRole('button', { name: `Open here: ${card.name}`, exact: true });
         await here.click();
-        await page.getByText('Could not open this card here.', { exact: false }).waitFor();
+        await modal.getByText('Could not open this card here.', { exact: false }).waitFor();
         assert.equal(await here.isEnabled(), true);
-        assert.equal(await page.locator('tbody tr').count(), 1);
-        assert.equal(await page.locator('#scan-coverage').isVisible(), true);
-        assert.doesNotMatch(await page.locator('body').innerText(), /private navigation error/);
-        await page.evaluate(() => { window.navigationFailure = ''; });
+        assert.equal(await modal.locator('tbody tr').count(), 1);
+        assert.equal(await modal.locator('#scan-coverage').isVisible(), true);
+        assert.doesNotMatch(await modal.locator('body').innerText(), /private close error/);
+        assert.equal(await modal.evaluate(() => window.calls.includes('clear')), false);
+        await page.evaluate(() => { window.closeFailure = ''; });
         await here.click();
-        assert.equal(await page.locator('.card-navigation-error').innerText(), '');
-        assert.equal(await page.evaluate(() => window.calls.filter(call => call.navigate).length), 2);
-        assert.equal(await page.evaluate(() => window.calls.includes('clear')), false);
+        await page.waitForFunction(() => window.hostCalls.some(call => call.navigate));
+        assert.deepEqual(await page.evaluate(() => window.hostCalls), [
+          { close: true }, { close: true }, { navigate: { url: card.url } },
+        ]);
       });
   }
+  await scenario('navigation failure after modal destruction uses a sanitized Trello alert',
+    { returning: true, listsClosed: false }, async ({ page }) => {
+      const modal = await mountModal(page, { navigateFailure: true });
+      await modal.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await modal.locator('#scan-results').waitFor({ state: 'visible' });
+      await modal.getByRole('button', { name: `Open here: ${card.name}`, exact: true }).click();
+      await page.waitForFunction(() => window.hostCalls.some(call => call.alert));
+      assert.equal(await page.locator('#test-modal').count(), 0);
+      const calls = await page.evaluate(() => window.hostCalls);
+      assert.deepEqual(calls.slice(0, 2), [{ close: true }, { navigate: { url: card.url } }]);
+      assert.match(calls[2].alert.message, /Reopen the Power-Up and use Open in new tab/);
+      assert.doesNotMatch(calls[2].alert.message, /private/);
+    });
+  await scenario('old connector without navigation channel gives reload guidance',
+    { returning: true, listsClosed: false }, async ({ page }) => {
+      await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);
+      await page.getByRole('button', { name: 'Scan selected board', exact: true }).click();
+      await page.locator('#scan-results').waitFor({ state: 'visible' });
+      await page.getByRole('button', { name: `Open here: ${card.name}`, exact: true }).click();
+      await page.getByText('Reload the Trello board', { exact: false }).waitFor();
+      assert.equal(await page.locator('tbody tr').count(), 1);
+    });
   await scenario('explicit board selection reads only that board and refresh reuses board cache',
     { returning: true, listsClosed: false, boardSet: [board, secondBoard] }, async ({ page, requests }) => {
       await page.goto(`${origin}${base}apps/overdue-checklist/view.html`);

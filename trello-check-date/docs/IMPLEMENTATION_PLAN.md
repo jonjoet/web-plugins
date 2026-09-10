@@ -34,11 +34,19 @@ controls and integration diagnostics remain. These filters do not close any
 pending completeness or live archive/fallback acceptance gate.
 
 The v0.2.1 follow-up replaces linked card names with plain names and two controls:
-Open here uses Trello's `t.navigate({ url })` for the existing tab, including
-cross-board card URLs; Open in new tab retains a validated link with
-`noopener noreferrer`. Navigation errors stay local to the row and allow retry.
-The user confirmed v0.2.0 working on their board; SDK navigation from the modal
-still needs live confirmation after deployment. No new REST endpoints or scopes.
+Open here asks the persistent connector to close the modal, then call Trello's
+`t.navigate({ url })` for the existing tab, including cross-board card URLs.
+A random, modal-specific BroadcastChannel carries the card URL, validated at both
+ends, without tokens or persistent storage. Closing the modal destroys its view,
+so the remaining navigation must run in the connector. Channels close on dismissal
+or navigation; an unavailable connector produces reload guidance. Errors before
+closure stay in the row; errors after closure use a sanitized Trello alert.
+Open in new tab retains a validated link with `noopener noreferrer`.
+The user confirmed v0.2.0 working, but the first v0.2.1 navigation attempt left the
+modal open and did not leave the card open after dismissal. The revised close-first
+sequence has an iframe-destruction regression test and still needs live confirmation.
+Reload the Trello board after deployment to replace the persistent connector.
+No new REST endpoints or scopes.
 
 ## 1. Outcome and scope
 
