@@ -94,6 +94,14 @@ export function createApi({ appKey, token, fetchImpl = fetch, now = Date.now,
     defaultCards: (id, signal) => get(boardPath(id, 'cards'), {
       filter: 'open', fields: 'name,url', checklists: 'all',
     }, signal),
+    scanCards: (id, signal) => get(boardPath(id, 'cards'), {
+      filter: 'open', fields: 'name,url,idList,idBoard,closed',
+      checklists: 'all', checklist_fields: 'name',
+    }, signal),
+    card: (id, signal) => {
+      if (!/^[a-f\d]{24}$/i.test(id)) throw new ApiError('shape');
+      return get(`/cards/${id}`, { fields: 'idBoard,idList,closed' }, signal);
+    },
     metadata: (id, signal) => get(boardPath(id, 'cards'), {
       filter: 'open', fields: 'name,url,idList,idBoard,closed',
     }, signal),

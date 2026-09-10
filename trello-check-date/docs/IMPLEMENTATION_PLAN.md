@@ -1,12 +1,22 @@
 # Overdue Checklist Items — implementation plan
 
-Status: technical review complete; Phase 1 connection preview implemented.
-Live account verification and the Phase 1 exit gate remain outstanding. The
-preview compares field projections and reports archive/join counts; it does not
-yet resolve fallback join misses or establish pagination/exhaustion. Phases 2–3
-(complete overdue scans and table) remain to be implemented. Phase 4 has a Pages
-workflow and step-by-step setup guide; deployment remains disabled until the
-user configures Pages, the public API key, and `TRELLO_PAGES_ENABLED=true`.
+Status: Phase 1 connection preview deployed; single-board live shape verification
+reported successful on 2026-09-10, with the modal opened twice. Both checklist
+projections returned matching counts and valid item fields, including non-null
+due dates. Prefer the original `checklist_fields=name` projection. Cross-board
+live acceptance is deferred by the user; the application's scope is unchanged.
+No open card in an archived list was observed. Fallback join misses were observed
+but their classification remains unverified against live data. Revocation recovery
+and pagination/exhaustion also remain pending, so the Phase 1 exit is not closed.
+
+Phase 2 domain and scan modules implement validated overdue observations, archive
+filtering, targeted fallback lookup, board caching, partial results and cancellation.
+They are not connected to the preview UI yet. Collection completeness remains
+explicitly unverified, including empty responses: pagination and its multiple-page
+and repeated-cursor tests are still to be implemented against a verified endpoint
+contract. Phase 2 is therefore partial; Phase 3's table remains outstanding.
+Phase 4's Pages workflow completed all three jobs successfully in the first
+configured deployment; the step-by-step setup guide remains available.
 Prepared with GPT-6 against the build spec in commit
 `dbb57908e653addb584eb3396dbc9f6121d71053`.
 
@@ -33,7 +43,7 @@ plugin framework remain outside scope.
 | Allowed origins | Authorization redirects require an allowed origin on the app's API key. [S2] | Include the deployed HTTPS origin and any development tunnel origin in manual setup, separately from the connector URL. |
 | Network policy | Authorization uses Trello's own consent flow, which the spec's two-host allowance does not describe. [S2] | Allow the Power-Up's hosting origin, `api.trello.com`, `p.trellocdn.com`, and Trello's required consent/sign-in flow. Keep custom application fetches confined to the Trello API; no analytics or unrelated services. Verify required sign-in redirects in the live browser flow before documenting a restrictive policy. |
 | Item schema | Documented check-item fields include `due` and `state`; `dueComplete` is a card field and is not needed for item completion. [S3, S4] | Determine eligibility from valid `due` plus `state === "incomplete"`. Remove item-level `dueComplete` assumptions from the spec and fixtures. |
-| Nested payload | Nested checklists and field selectors are documented; the exact optimized query in the spec has not been exercised against this account. [S3] | Treat its complete item payload as unverified, not as a proven defect. Verify response shape before adopting the optimization. Missing expected arrays must not silently become empty arrays. |
+| Nested payload | The user's single-board live report on 2026-09-10 returned matching valid item counts for `checklist_fields=name` and the omitted selector, including dated items. [S3] | Select the original name projection for nested items. The added card archive/join projection still needs a combined live check. Missing expected arrays must not silently become empty arrays. This observation does not establish collection completeness. |
 | Archived lists | A firsthand API reproduction reports that archiving a list leaves its cards open; an earlier developer-forum reply confirms that preserving card state is intentional. [S11, S12] | Explicitly refine the product's archive policy to exclude archived lists as well as archived boards/cards. Fetch list archive state and join using card `idList`; card `filter=open` alone does not establish list visibility. Verify this case in Phase 1. |
 | Collection completeness | Trello documents limits and paging for long collections, including cards. The precise behavior of the chosen board-card route still needs verification. [S5] | Do not guarantee one request per board. Verify the route's supported paging, ordering, and exhaustion rules; implement them before claiming a complete account scan. |
 | Deployment configuration | A clean CI checkout will not contain ignored `config.js`. | Supply the public key explicitly during deployment builds; distinguish a missing setup value from an unauthorized user. |

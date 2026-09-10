@@ -176,14 +176,17 @@ the Git root's `.github/workflows/`.
 
 Base: `https://api.trello.com/1`. Every request appends `key={appKey}&token={token}`.
 
-Candidate fetch strategy, pending live field and endpoint-completeness verification:
-- **List boards**: `GET /members/me/boards?filter=open&fields=name,url`
-- **Per board, cards with nested checklists**, exact original projection to test:
-  `GET /boards/{boardId}/cards?filter=open&fields=name,url&checklists=all&checklist_fields=name`
-  Compare with omission of `checklist_fields`; do not assume either response
-  includes complete `checklists[].checkItems[]`. Required item fields are `id`,
-  `name`, `state`, and `due`. Missing arrays must fail, not become empty arrays.
-  The eventual card projection also needs `idList`, `closed`, and join fields.
+Selected nested item projection, with endpoint completeness still pending:
+- **List boards**: `GET /members/me/boards?filter=open&fields=name,url,closed`
+- **Per board, cards with nested checklists**:
+  `GET /boards/{boardId}/cards?filter=open&fields=name,url,idList,idBoard,closed&checklists=all&checklist_fields=name`
+  The user's single-board live report on 2026-09-10 compared the original
+  `fields=name,url` query with and without `checklist_fields=name`. Both returned
+  matching counts and valid `checkItems`, including non-null due dates. Retain
+  the name projection; it did not omit items in that observation. Required item
+  fields are `id`, `name`, `state`, and `due`. Missing arrays must fail, not become
+  empty arrays. Card archive/join metadata was checked separately; the combined
+  projection above remains to be exercised live.
 - Flatten: for each card → each checklist → each checkItem, keep if
   `due && new Date(due) < now && state === "incomplete"`, attaching card name/url
   and board name.
@@ -195,11 +198,16 @@ each missing `idCard` with a bounded GET retaining `idBoard`, `idList`, and `clo
 exclude only a positively archived card/list. Missing open cards, moved cards,
 failed lookups, and unresolved lists make the result incomplete.
 
-The selected route, field projection, pagination order/cursor, and exhaustion
-rule remain **pending**. No one-request-per-board guarantee is made. Verify
-multiple pages and repeated cursors before claiming completeness, then update
-this section with the observed contract. A small-account shape probe alone does
-not establish pagination. See the reviewed implementation plan for the gate.
+The nested item projection is selected, but pagination order/cursor and exhaustion
+remain **pending**. No one-request-per-board guarantee is made. Verify multiple
+pages and repeated cursors before claiming completeness, then update this section
+with the observed contract. The single-board report had resolved list references
+but no open cards in archived lists; archive exclusion is not live-verified by
+that run. Fallback join misses were present and remain unclassified by the live
+probe. A small-board shape probe alone does not establish pagination. The current
+scan modules return observed rows with `complete: false` and
+`collection-completeness-unverified`; they cannot certify an empty success.
+The modal remains the integration preview until the table is connected.
 
 ## 8. Security requirements (hard rules)
 

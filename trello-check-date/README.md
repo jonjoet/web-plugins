@@ -6,9 +6,18 @@ boards, open lists, and open cards, for all assignees.
 **Current milestone: connection preview.** The board button opens a fullscreen
 setup view with SDK authorization and a board integration check. It reports
 response shapes and counts only. It does not yet display an overdue table or
-certify an account-wide scan. Live consent, persistence, exact item projections,
-archive/join handling, and endpoint pagination must be verified before selecting
-the final fetch strategy. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md).
+certify an account-wide scan. A single-board live check confirmed the original
+checklist item projection, and the user reported opening the modal twice.
+Archive/join classification, endpoint completeness and broader live acceptance
+remain pending. See [the implementation plan](docs/IMPLEMENTATION_PLAN.md).
+
+The next milestone's domain and scan modules are present in `shared/overdue.js`
+and `shared/scan.js`, with synthetic tests. They validate overdue dates and parent
+archive states, resolve fallback card references, cache board listings in memory,
+and cancel replaced scans. They support multiple boards or an explicit board ID.
+They are not yet connected to the preview, and always mark collection completeness
+unverified until the endpoint pagination contract is established. No new setup or
+additional test board is needed to continue this implementation work.
 
 **Start here:** [Step-by-step GitHub Pages and Trello setup](SETUP.md), with the
 exact URLs and settings for `jonjoet/web-plugins`. This route needs only a browser.
