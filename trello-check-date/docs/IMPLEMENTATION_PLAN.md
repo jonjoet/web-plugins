@@ -7,8 +7,8 @@ Prepared with GPT-6 against the build spec in commit
 ## 1. Outcome and scope
 
 Build a personal Trello Power-Up whose board button opens a fullscreen view of
-incomplete, overdue checklist items across the signed-in user's open boards and
-open cards. Use a static site, vanilla JavaScript modules, Vite, and a read-only
+incomplete, overdue checklist items across the signed-in user's open boards,
+open lists, and open cards. Use a static site, vanilla JavaScript modules, Vite, and a read-only
 Trello user token. Keep the shared Trello authentication, fetching, and UI code
 small enough to serve a second Power-Up without building that second app.
 
@@ -28,6 +28,7 @@ plugin framework remain outside scope.
 | Network policy | Authorization uses Trello's own consent flow, which the spec's two-host allowance does not describe. [S2] | Allow the Power-Up's hosting origin, `api.trello.com`, `p.trellocdn.com`, and Trello's required consent/sign-in flow. Keep custom application fetches confined to the Trello API; no analytics or unrelated services. Verify required sign-in redirects in the live browser flow before documenting a restrictive policy. |
 | Item schema | Documented check-item fields include `due` and `state`; `dueComplete` is a card field and is not needed for item completion. [S3, S4] | Determine eligibility from valid `due` plus `state === "incomplete"`. Remove item-level `dueComplete` assumptions from the spec and fixtures. |
 | Nested payload | Nested checklists and field selectors are documented; the exact optimized query in the spec has not been exercised against this account. [S3] | Treat its complete item payload as unverified, not as a proven defect. Verify response shape before adopting the optimization. Missing expected arrays must not silently become empty arrays. |
+| Archived lists | A firsthand API reproduction reports that archiving a list leaves its cards open; an earlier developer-forum reply confirms that preserving card state is intentional. [S11, S12] | Explicitly refine the product's archive policy to exclude archived lists as well as archived boards/cards. Fetch list archive state and join using card `idList`; card `filter=open` alone does not establish list visibility. Verify this case in Phase 1. |
 | Collection completeness | Trello documents limits and paging for long collections, including cards. The precise behavior of the chosen board-card route still needs verification. [S5] | Do not guarantee one request per board. Verify the route's supported paging, ordering, and exhaustion rules; implement them before claiming a complete account scan. |
 | Deployment configuration | A clean CI checkout will not contain ignored `config.js`. | Supply the public key explicitly during deployment builds; distinguish a missing setup value from an unauthorized user. |
 
@@ -126,16 +127,42 @@ status and response shape before data reaches the view.
 Start from open boards (`/members/me/boards?filter=open&fields=name,url`). For each
 board, verify the spec's nested cards/checklists route and its field projection.
 Request identifiers and any fields necessary to establish card archive state,
-item eligibility, joins, links, and collection completeness. An actual empty
+parent-list archive state, item eligibility, joins, links, and collection completeness. An actual empty
 collection is valid; a missing required collection or malformed response fails
 that board. Items with a null due date are ordinary non-matches; an invalid
 non-null date or unrecognized state must be reported as a data-quality failure
 instead of making the total appear complete.
 
+Compare the spec's exact `checklist_fields=name` projection with the same request
+omitting `checklist_fields` (documented default: `all`). Check whether `checkItems`
+is present and includes the required item fields on a checklist known to contain
+items. A narrowed projection might omit that array; this is a hypothesis, not a
+confirmed response. Choose a projection only after the comparison. A simulated
+HTTP 200 containing checklist IDs/names but no `checkItems` must fail validation,
+not produce an empty success. [S3]
+
+Both fetch strategies also read the board's lists with `filter=all`, retaining
+list IDs and `closed`, and retain `idList` on cards. Exclude a card when either
+the card or its parent list is positively known to be closed. An absent list ID,
+unrecognized archive state, or failed/incomplete list fetch leaves the board
+incomplete; never interpret a missing list as an archived list. Use the same
+scheduler and completeness checks for list requests. [S13]
+
 If the nested route cannot supply complete items, use the documented board
 checklists route plus open-card metadata, joining by `idCard`. Filter out
-checklists whose cards are archived. This is the spec's existing fallback, not a
-new architecture. Both routes must satisfy the same normalized result contract.
+checklists only when the card or parent list is positively known to be archived.
+An unmatched `idCard` is not proof of archive status. Resolve each distinct miss
+with a scheduled GET of that card's `idBoard`, `idList`, and `closed` fields.
+Known archived cards/lists may be excluded. An open card in an open list that is
+absent from the supposedly complete card collection is a completeness failure;
+do not merely append it and assume there are no other missing cards. A moved card,
+404/403, failed lookup, or unresolved list is likewise an inconsistent/incomplete
+board result, with manual retry available. This also handles cross-request changes
+without claiming a transactional snapshot. Targeted lookups use the existing
+retry budget and cancellation rules, and their values remain scan-local. [S14]
+
+This is the spec's existing fallback with an explicit join-validation contract,
+not a new architecture. Both routes must satisfy the same normalized result contract.
 Verify exact endpoint field and pagination behavior before choosing one. [S3]
 
 For a paginated route, deduplicate by IDs, advance a verified cursor, stop only
@@ -165,9 +192,12 @@ snapshot of all Trello boards; record when it finished and allow manual refresh.
 
 `shared/overdue.js` is independent of the SDK and browser. Normalize item ID,
 checklist ID/name, card ID/name/URL, board ID/name, and due timestamp. Include all
-matching items on accessible open boards/open cards, regardless of item assignee
-or the parent card's due date/completion status. Archived boards and archived
-cards are excluded; no additional list or assignee filter is introduced.
+matching items on accessible open boards/open lists/open cards, regardless of
+item assignee or the parent card's due date/completion status. Exclude archived
+boards, lists, and cards. Excluding archived lists is an explicit refinement of
+the original spec, which named board and card archive filters but left this case
+unspecified. State that scope in the modal and README; retain it when comparing
+the result with user-visible Trello content. No assignee filter is introduced.
 
 An item is overdue only when its valid due timestamp is strictly less than the
 scan's frozen `now` and its state is incomplete. An item due exactly at `now` is
@@ -208,8 +238,9 @@ variants and opens `t.modal({ fullscreen: true, ... })`. [S9, S10]
    `https://trello.com/apps/admin`. [S1, S2]
 4. After the user's account-dependent setup, verify authorize, reopen, cancel,
    revocation recovery, and cross-board reads in the actual Trello iframe using
-   normal browser settings. Verify the nested response, field selection, card
-   archive behavior, and collection completeness. Use existing suitable boards
+   normal browser settings. Verify the nested response and the exact projection
+   comparison, card/list archive behavior, fallback join-miss classification, and
+   collection completeness. Use existing suitable boards
    or a user-created fixture; the read-only app does not create test content.
 
 Exit: documented selected request strategy with verified item fields and
@@ -259,11 +290,11 @@ account setup, verify the final registered URL and live cross-board results.
 
 | Layer | Required cases |
 | --- | --- |
-| Domain | Incomplete/past-due included; complete/future/null-due excluded; equal-to-now boundary; invalid date and state handling; UTC offsets and DST boundary; stable ties; numeric Days overdue ordering; archived board/card filtering; item eligibility independent of parent-card dueComplete and assignment. |
-| HTTP and scans | Empty board list; empty cards/checklists; unexpected/missing arrays; approved field projection; more than one page and repeated cursor; duplicate IDs; mid-scan inaccessible board; retryable 429/5xx/network failure with bounded attempts; 401 clears auth and cancels; board-list failure; partial zero results; refresh and close cancellation; late response isolation. |
+| Domain | Incomplete/past-due included; complete/future/null-due excluded; equal-to-now boundary; invalid date and state handling; UTC offsets and DST boundary; stable ties; numeric Days overdue ordering; archived board/card/list filtering, including an open card in an archived list; item eligibility independent of parent-card dueComplete and assignment. |
+| HTTP and scans | Empty board list; empty cards/checklists; unexpected/missing arrays; compare exact `checklist_fields=name` with omitted projection; HTTP 200 lacking `checkItems` is a failure; more than one page and repeated cursor; duplicate IDs; failed list request or missing list reference; fallback join miss with confirmed archived card, missing open card, moved card, and failed/404/403 card lookup; mid-scan inaccessible board; retryable 429/5xx/network failure with bounded attempts; 401 clears auth and cancels; board-list failure; partial zero results; refresh and close cancellation; late response isolation. |
 | Browser with synthetic data | Board-button declaration and fullscreen modal arguments; authorize from a view click; denied/cancelled/failed auth; returning-token path; all display states; sorting via keyboard; hostile item names rendered as text; external Trello links; narrow viewport; production subpath assets and modal URLs. |
 | Clean build and packaging | Container installs from lockfile; lint/tests/build pass; no local config in checkout; fake-key verification succeeds; production missing-key build fails; public-key build succeeds; both HTML entry points and icons resolve in the staged Pages directory; token canary absent from output and logs. |
-| Real Trello | Normal-browser consent and reopening; manual revocation recovery; two open boards with known matching/nonmatching items; archive exclusion; cross-board links; exact endpoint shape and completeness contract; comparison with user-visible Trello content; final hosted connector and modal. |
+| Real Trello | Normal-browser consent and reopening; manual revocation recovery; two open boards with known matching/nonmatching items; archive exclusion including an open card in an archived list; cross-board links; exact field-projection comparison and endpoint completeness contract; fallback join behavior; comparison with user-visible Trello content under the documented archive scope; final hosted connector and modal. |
 
 Run dependency installation and automated checks in the project Docker image or
 an existing suitable development container. Keep host package installations out
@@ -304,3 +335,7 @@ silently add a server, broader scopes, or another authentication architecture.
 - [S8 — Trello rate limits](https://developer.atlassian.com/cloud/trello/guides/rest-api/rate-limits/)
 - [S9 — Trello board buttons](https://developer.atlassian.com/cloud/trello/power-ups/capabilities/board-buttons/)
 - [S10 — Trello modal UI](https://developer.atlassian.com/cloud/trello/power-ups/ui-functions/modal/)
+- [S11 — Firsthand reproduction of open cards in archived lists (May 2026)](https://community.developer.atlassian.com/t/filter-open-on-card-endpoints-ignores-parent-lists-archived-state-inconsistent-with-ui-search/100997)
+- [S12 — Developer-forum explanation of list and card archive states](https://community.developer.atlassian.com/t/rest-api-card-in-archived-list-is-not-marked-as-closed/34294)
+- [S13 — Trello board lists endpoint](https://developer.atlassian.com/cloud/trello/rest/api-group-boards/#api-boards-id-lists-get)
+- [S14 — Trello single-card endpoint](https://developer.atlassian.com/cloud/trello/rest/api-group-cards/#api-cards-id-get)
