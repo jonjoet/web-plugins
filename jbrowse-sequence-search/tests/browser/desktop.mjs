@@ -9,7 +9,7 @@
 // set to "" when a display is available). Desktop runs with a throwaway HOME.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { EXPECTED, QUERY, assemblyConfig, buildGenomes, serve, writeFasta } from './fixture.mjs';
@@ -75,9 +75,16 @@ async function launch(file) {
   return { child, browser, page };
 }
 async function quit(app) {
+  // Close the window so Desktop exits normally (and finishes any session
+  // write); force-stop the process group only if it does not exit.
+  const exited = new Promise(r => app.child.once('exit', r));
+  await app.page.evaluate(() => window.close()).catch(() => {});
+  const done = await Promise.race([exited.then(() => true), new Promise(r => setTimeout(() => r(false), 10_000))]);
   await app.browser.close().catch(() => {});
-  try { process.kill(-app.child.pid, 'SIGTERM'); } catch { /* already gone */ }
-  await new Promise(r => setTimeout(r, 2000));
+  if (!done) {
+    try { process.kill(-app.child.pid, 'SIGTERM'); } catch { /* already gone */ }
+  }
+  await new Promise(r => setTimeout(r, 1000));
 }
 
 const checks = [];
@@ -197,6 +204,7 @@ await check('results track saved by Desktop holds the same hits as the list', as
   assert.ok(saved, 'no saved session with search results found');
   const decoded = decodeResults(saved.track.adapter.results);
   assert.deepEqual(decoded.hits.map(({ refName, start, end, strand }) => ({ refName, start, end, strand })), EXPECTED);
+  await copyFile(saved.file, join(out, 'saved-session-after-search.jbrowse'));
   return { savedIn: saved.file.replace(out, '<output>'), plugins: saved.plugins };
 });
 
