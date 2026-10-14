@@ -1,0 +1,164 @@
+{
+  "jbrowse": "JBrowse Web 4.3.0",
+  "browser": "141.0.7390.37",
+  "plugin": "jbrowse-sequence-search 0.1.0",
+  "pluginUrl": "/plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js",
+  "sourceCommit": "bca512df1f49243d29632cfec5fc04d05445158c",
+  "sourceDirty": "no",
+  "date": "2026-10-14T18:06:35.543Z",
+  "passed": 18,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "plugin loads from the self-hosted URL on the page and in the RPC worker",
+      "ok": true,
+      "ms": 1509,
+      "detail": {
+        "pluginUrl": "http://127.0.0.1:44977/plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js",
+        "fetched": 2,
+        "jbrowseVersion": "4.3.0"
+      }
+    },
+    {
+      "name": "Tools menu opens the search panel with the whole-assembly scope",
+      "ok": true,
+      "ms": 649,
+      "detail": {
+        "scope": "Searches all 3 sequences of testgenome (2.20 Mb), both strands — the whole assembly, not just the region on screen."
+      }
+    },
+    {
+      "name": "invalid input is explained and cannot be searched",
+      "ok": true,
+      "ms": 197
+    },
+    {
+      "name": "search finds every planted hit, beyond the visible region and on other contigs",
+      "ok": true,
+      "ms": 1074,
+      "detail": {
+        "rows": [
+          "1 ctgA 1,001 1,020 + ACGTTGCATGCAGTCCTAGG",
+          "2 ctgA 999,991 1,000,010 + ACGTTGCATGCAGTCCTAGG",
+          "3 ctgA 2,099,981 2,100,000 − ACGTTGCATGCAGTCCTAGG",
+          "4 ctgB 1 20 + ACGTTGCATGCAGTCCTAGG",
+          "5 ctgB 5,001 5,020 − ACGTTGCATGCAGTCCTAGG",
+          "6 ctgC 301 320 + ACGTTGCATGCAGTCCTAGG"
+        ]
+      }
+    },
+    {
+      "name": "results track and list are the same result set (worker reads the track adapter)",
+      "ok": true,
+      "ms": 22,
+      "detail": {
+        "featuresFromWorker": 6
+      }
+    },
+    {
+      "name": "clicking a result navigates to it with flanking sequence and the track shows it",
+      "ok": true,
+      "ms": 334,
+      "detail": {
+        "refNames": [
+          "ctgB"
+        ],
+        "left": {
+          "refName": "ctgB",
+          "coord": 1
+        },
+        "right": {
+          "refName": "ctgB",
+          "coord": 71
+        },
+        "tracks": [
+          "testgenome-reference",
+          "genome-search-1792001155312-u2vcys"
+        ]
+      }
+    },
+    {
+      "name": "Next and Previous step through matches in genome order",
+      "ok": true,
+      "ms": 851
+    },
+    {
+      "name": "lowercase query matches soft-masked sequence identically",
+      "ok": true,
+      "ms": 241
+    },
+    {
+      "name": "palindromic query: one hit per site, strand both, equal to brute force over the genome",
+      "ok": true,
+      "ms": 547,
+      "detail": {
+        "hits": 517
+      }
+    },
+    {
+      "name": "forward-only search reports only + strand matches",
+      "ok": true,
+      "ms": 395
+    },
+    {
+      "name": "IUPAC ambiguity search equals brute force and lists matched bases",
+      "ok": true,
+      "ms": 742,
+      "detail": {
+        "hits": 2063
+      }
+    },
+    {
+      "name": "no matches is reported as a complete search",
+      "ok": true,
+      "ms": 387
+    },
+    {
+      "name": "a result limit is labelled incomplete and the long list stays usable",
+      "ok": true,
+      "ms": 964,
+      "detail": {
+        "rendered": 18,
+        "selectLastMs": 132
+      }
+    },
+    {
+      "name": "Stop cancels the search, stops further reads and is labelled incomplete",
+      "ok": true,
+      "ms": 14981,
+      "detail": {
+        "status": "cancelled",
+        "hitsBeforeStop": 0,
+        "readsAtStop": 16,
+        "readsLater": 16
+      }
+    },
+    {
+      "name": "starting a replacement search discards the superseded one",
+      "ok": true,
+      "ms": 18575,
+      "detail": {
+        "hits": 1457
+      }
+    },
+    {
+      "name": "assembly follows the view the command is opened from",
+      "ok": true,
+      "ms": 543
+    },
+    {
+      "name": "results survive a page reload (session restore) and still navigate",
+      "ok": true,
+      "ms": 1129,
+      "detail": {
+        "restoredHits": 1,
+        "sessionStorageChars": 133741
+      }
+    },
+    {
+      "name": "no uncaught page errors",
+      "ok": true,
+      "ms": 0
+    }
+  ]
+}

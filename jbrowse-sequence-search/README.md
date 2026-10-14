@@ -16,6 +16,10 @@ and JBrowse Desktop 4.3.x** (tested with 4.3.0; see [Compatibility](#compatibili
   Desktop installation, offline use and upgrades.
 - [docs/DESIGN.md](docs/DESIGN.md) records design decisions and the JBrowse
   4.3.0 source findings they rest on.
+- [docs/MANUAL-DESKTOP-CHECK.md](docs/MANUAL-DESKTOP-CHECK.md) is a short
+  manual check for your own Desktop installation and server.
+- [verification/](verification/) holds the saved evidence from the browser
+  runs.
 
 ## Using it
 
