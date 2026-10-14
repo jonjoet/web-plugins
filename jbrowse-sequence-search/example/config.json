@@ -1,0 +1,32 @@
+{
+  "plugins": [
+    {
+      "name": "GenomeSequenceSearch",
+      "url": "/jbrowse-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js"
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "example",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "example-reference",
+        "adapter": {
+          "type": "IndexedFastaAdapter",
+          "fastaLocation": { "uri": "data/example.fa", "locationType": "UriLocation" },
+          "faiLocation": { "uri": "data/example.fa.fai", "locationType": "UriLocation" }
+        }
+      }
+    }
+  ],
+  "tracks": [],
+  "defaultSession": {
+    "name": "Genome search example",
+    "views": [
+      {
+        "type": "LinearGenomeView",
+        "init": { "assembly": "example", "loc": "chr1:1-1000", "tracks": ["example-reference"] }
+      }
+    ]
+  }
+}

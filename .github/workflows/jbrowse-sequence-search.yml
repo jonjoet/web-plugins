@@ -1,0 +1,41 @@
+name: JBrowse sequence search checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'jbrowse-sequence-search/**'
+      - '.github/workflows/jbrowse-sequence-search.yml'
+  pull_request:
+    paths:
+      - 'jbrowse-sequence-search/**'
+      - '.github/workflows/jbrowse-sequence-search.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, test and build
+    runs-on: ubuntu-latest
+    container: node:22.23.2-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436
+    defaults:
+      run:
+        working-directory: jbrowse-sequence-search
+    steps:
+      - uses: actions/checkout@v6
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_DIRTY: 'no'
+      # A downloadable build for review; nothing is deployed or published.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jbrowse-sequence-search-build
+          path: jbrowse-sequence-search/dist/
+          if-no-files-found: error
