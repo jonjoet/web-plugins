@@ -1,0 +1,10 @@
+# Context is the repository root; send only what site/Dockerfile copies.
+*
+!trello-check-date/
+!jbrowse-sequence-search/releases/
+!site/stage-site.sh
+!site/nginx.conf.template
+**/node_modules
+**/dist
+trello-check-date/config.js
+trello-check-date/.tmp

@@ -1,0 +1,28 @@
+# Rendered at container start; ${PLUGIN_SITE_CONTAINER_PORT} comes from the
+# environment (see compose.yaml). Paths match GitHub Pages: /web-plugins/...
+server {
+    # IPv4 only: Docker forwards published ports to the container over IPv4,
+    # and an IPv6 listener fails on hosts without IPv6.
+    listen ${PLUGIN_SITE_CONTAINER_PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+    # Relative redirects, so they work whatever host port is mapped.
+    absolute_redirect off;
+
+    location = / {
+        return 302 /web-plugins/;
+    }
+
+    location /web-plugins/ {
+        autoindex on;
+
+        # Released JBrowse plugin versions never change.
+        location /web-plugins/jbrowse-sequence-search/ {
+            add_header Cache-Control "public, max-age=31536000, immutable";
+        }
+
+        location /web-plugins/trello-check-date/ {
+            add_header Cache-Control "no-cache";
+        }
+    }
+}
