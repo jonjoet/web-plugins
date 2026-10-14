@@ -15,7 +15,8 @@ data and authorization token are not part of the published site.
 1. Open [repository Settings → Pages](https://github.com/jonjoet/web-plugins/settings/pages).
 2. Under **Build and deployment → Source**, select **GitHub Actions**.
 3. Skip the suggested workflow templates: this repository includes
-   [Trello checks and Pages](../.github/workflows/trello-check-date.yml).
+   [Plugin site (GitHub Pages)](../.github/workflows/pages.yml), which builds and
+   publishes one site containing every plugin in the repository.
 
 The workflow will publish after you configure the key and enable deployment in
 step 4. GitHub's instructions for
@@ -100,9 +101,10 @@ show the same screen.
 
 The workflow generates the ignored configuration file automatically. You do not
 need to create or commit `config.js` for GitHub Pages. Once enabled, future changes
-on `main` under the Trello folder or its workflow will rebuild and redeploy. Pull
-requests run checks with a fake key and never deploy. Setting the flag to `false`
-stops future deployments; it does not remove a site that is already published.
+on `main` under any plugin folder, `site/`, or the workflows will rebuild and redeploy
+the combined site. Pull requests run checks with a fake key and never deploy. The flag
+now gates the whole site, including the other plugins. Setting it to `false` stops
+future deployments; it does not remove a site that is already published.
 
 ## 5. Run the first deployment
 
@@ -110,11 +112,13 @@ GitHub Pages deployment has succeeded for this repository through v0.2.1.
 When setting up a copy or changing configuration, follow the steps below. If a
 job fails, share its run link and error message to help diagnose the failure.
 
-1. Open [Actions → Trello checks and Pages](https://github.com/jonjoet/web-plugins/actions/workflows/trello-check-date.yml).
+1. Open [Actions → Plugin site (GitHub Pages)](https://github.com/jonjoet/web-plugins/actions/workflows/pages.yml).
 2. Click **Run workflow**, select **main**, and click the green **Run workflow** button.
    Adding variables does not start a run by itself.
-3. Open the new run and wait for all three jobs to succeed:
-   **Check the preview**, **Build the configured site**, and **Publish to GitHub Pages**.
+3. Open the new run and wait for all jobs to succeed: **Trello / Check the preview**,
+   the **JBrowse sequence search** checks, **Build the combined site**, and
+   **Publish to GitHub Pages**. (Up to v0.2.1 the Trello workflow deployed on its own;
+   deployment now lives only in this combined workflow.)
 4. Open the exact [hosted connector URL](https://jonjoet.github.io/web-plugins/trello-check-date/apps/overdue-checklist/connector.html).
    It should load and say to open the Power-Up from a Trello board. It is not the
    checklist view and will not authorize you in a standalone tab.

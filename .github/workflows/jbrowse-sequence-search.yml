@@ -1,16 +1,14 @@
 name: JBrowse sequence search checks
 
+# Checks only. Deployment is in pages.yml, which calls this workflow and
+# publishes one site containing every plugin.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'jbrowse-sequence-search/**'
-      - '.github/workflows/jbrowse-sequence-search.yml'
   pull_request:
     paths:
       - 'jbrowse-sequence-search/**'
       - '.github/workflows/jbrowse-sequence-search.yml'
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -33,9 +31,36 @@ jobs:
         env:
           SOURCE_COMMIT: ${{ github.sha }}
           SOURCE_DIRTY: 'no'
+      # Every release folder must verify against its checksums, and the
+      # current source must rebuild byte-identically to its own release.
+      - run: npm run check:releases
       # A downloadable build for review; nothing is deployed or published.
       - uses: actions/upload-artifact@v4
         with:
           name: jbrowse-sequence-search-build
           path: jbrowse-sequence-search/dist/
           if-no-files-found: error
+
+  releases-unchanged:
+    name: Published releases are unchanged
+    # Runs on the plain runner because the Node image has no git.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Refuse edits, renames or deletions of existing release files
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "No base commit for this event; nothing to compare."
+            exit 0
+          fi
+          changed=$(git diff --name-status --diff-filter=MDRT "$BASE" HEAD -- jbrowse-sequence-search/releases/)
+          if [ -n "$changed" ]; then
+            echo "Released files are immutable (sessions point at their URLs). Add a new version instead:"
+            echo "$changed"
+            exit 1
+          fi
+          echo "No existing release files were changed."

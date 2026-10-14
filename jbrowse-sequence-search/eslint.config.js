@@ -1,4 +1,4 @@
-export default [{ ignores: ['dist/**', 'node_modules/**', 'verification/**', '.tmp/**'] }, {
+export default [{ ignores: ['dist/**', 'node_modules/**', 'verification/**', 'releases/**', '.tmp/**'] }, {
   files: ['**/*.js', '**/*.jsx', '**/*.mjs'],
   languageOptions: {
     ecmaVersion: 'latest',

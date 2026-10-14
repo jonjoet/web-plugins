@@ -1,9 +1,18 @@
 # Deploying the genome sequence search plugin
 
-The plugin is one static JavaScript file. Host it on your own web server,
-next to your JBrowse Web deployment or anywhere your users' browsers and
-JBrowse Desktop can reach over HTTP(S). GitHub Pages, unpkg, npm and the
-public JBrowse plugin store are not involved.
+The plugin is one static JavaScript file, served over HTTP(S). There are two
+ways to host it:
+
+- **This repository's GitHub Pages site**, which serves every plugin in the
+  repository at once. See [GitHub Pages](#github-pages). The released URL
+  for 0.1.0 is
+  `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`
+  once the site is deployed from `main`.
+- **Your own web server**, next to your JBrowse Web deployment or anywhere
+  your users' browsers and JBrowse Desktop can reach. Pages is optional; the
+  same versioned folder works from any static host.
+
+unpkg, npm and the public JBrowse plugin store are not involved.
 
 - Plugin name: `GenomeSequenceSearch`. JBrowse reads the global
   `JBrowsePluginGenomeSequenceSearch`, and the name must match exactly.
@@ -11,7 +20,7 @@ public JBrowse plugin store are not involved.
   on the page and again in its web worker.
 - Supported: JBrowse Web and Desktop **4.3.x**, tested with 4.3.0.
 
-Nothing in this document has been deployed. Placeholders such as
+Nothing in this document has been deployed yet. Placeholders such as
 `https://jbrowse.example.org` stand for your server.
 
 ## Artifacts
@@ -59,6 +68,45 @@ Server requirements:
   time. **Keep old versions on the server**: Desktop sessions store the exact
   URL, and a session whose plugin URL fails will not open.
 
+## GitHub Pages
+
+The repository has one Pages site, served at `https://jonjoet.github.io/web-plugins/`.
+A Pages deployment replaces the whole site, so all plugins are built and
+staged together by [`.github/workflows/pages.yml`](../.github/workflows/pages.yml):
+
+1. It runs each plugin's checks (the per-plugin workflows, reused).
+2. It builds the Trello Power-Up with its configured key.
+3. It stages the site with [`site/stage-site.sh`](../site/stage-site.sh):
+   `trello-check-date/` from the Trello build, and every folder in
+   [`releases/`](releases/) as `jbrowse-sequence-search/<version>/`, with
+   checksums verified.
+4. It deploys that single site.
+
+The workflow runs on pushes to `main` that touch either plugin, `site/` or the
+workflows, and can also be started by hand. Deployment stays behind the
+existing repository variable `TRELLO_PAGES_ENABLED=true`, which now gates the
+whole site. Pull requests only run checks and never deploy.
+
+The site serves what is committed in `releases/`, never a fresh build:
+
+| URL | Contents |
+| --- | --- |
+| `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js` | the plugin |
+| `…/0.1.0/jbrowse-sequence-search.js.map` | source map |
+| `…/0.1.0/BUILD-INFO.json`, `…/0.1.0/SHA256SUMS` | provenance and checksums |
+
+Pages serves `.js` as JavaScript over HTTPS, so both JBrowse Web (including
+an `https://` deployment on another host) and Desktop can load it. Notes:
+
+- The site is public, even for a private repository. The plugin contains no
+  secrets.
+- When Pages is the host, plugin availability depends on GitHub. For Desktop
+  this matters more, because a session whose plugin URL fails will not open.
+  You can mirror the same folder on your own server and use that URL instead.
+- `releases/0.1.0/` holds exactly the build verified in
+  [`verification/2026-10-14-bca512d/`](verification/2026-10-14-bca512d/), with
+  the same checksums.
+
 ## JBrowse Web
 
 Add the plugin to the `plugins` section of your deployment's `config.json`.
@@ -76,8 +124,10 @@ host name:
 }
 ```
 
-`url` and `umdUrl` are equivalent. An absolute
-`https://jbrowse.example.org/...` URL also works. The JBrowse documentation
+`url` and `umdUrl` are equivalent. An absolute URL also works, including
+the Pages URL
+`https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`
+if you prefer not to copy the file onto your JBrowse server. The JBrowse documentation
 also describes `"umdLoc": { "uri": "..." }`, which resolves relative to
 `config.json`; that form was not tested here.
 
@@ -100,8 +150,9 @@ Tested with JBrowse Desktop 4.3.0. Each user:
 1. Opens their session (or creates one).
 2. Chooses **Tools → Plugin store**, then **Add custom plugin**.
 3. Enters **Plugin name** `GenomeSequenceSearch` and **Plugin URL**
-   `https://jbrowse.example.org/jbrowse-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`.
-   Leave *Advanced options* empty.
+   `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`
+   (Pages), or your own server's URL for the same folder. Leave *Advanced
+   options* empty.
 4. Presses **Submit**. Desktop saves and reloads the session; the plugin
    store then lists *GenomeSequenceSearch (v0.1.0)* under Installed plugins.
 5. Uses **Tools → Search genome…**.
@@ -147,18 +198,25 @@ hosted URL while they can reach it. For offline use:
 
 ### Releasing a new plugin version
 
-1. Bump `version` in `package.json`; it becomes the directory name.
-2. Build from a clean commit, so `BUILD-INFO.json` says
-   `"sourceDirty": "no"`.
+1. Bump `version` in `package.json` **before changing plugin code**; it
+   becomes the directory name. CI fails if the source no longer builds
+   byte-identically to the release of the current version.
+2. Commit, then build from that clean commit, so `BUILD-INFO.json` says
+   `"sourceDirty": "no"` and names the commit.
 3. Run the unit tests and both browser checks
-   ([README.md](README.md#browser-checks)) and save their reports.
-4. Copy the new `x.y.z/` directory next to the old ones; never overwrite an
-   existing version.
-5. **Web:** change the URL in `config.json`. Sessions saved with
+   ([README.md](README.md#browser-checks)). Save their reports under
+   `verification/<date>-<commit>/`.
+4. Copy `dist/jbrowse-sequence-search/<version>/` unchanged to
+   `releases/<version>/`, and run `npm run check:releases`. Commit it. CI
+   refuses any later edit, rename or deletion of a released folder.
+5. Hosting: merging to `main` publishes the new folder on Pages next to the
+   old ones. On your own server, copy it next to the old versions and never
+   overwrite one.
+6. **Web:** change the URL in `config.json`. Sessions saved with
    `sessionPlugins` keep their own URL.
-6. **Desktop:** users remove the old entry in the plugin store (trash icon)
+7. **Desktop:** users remove the old entry in the plugin store (trash icon)
    and add the new URL, or you distribute an updated `.jbrowse` file.
-7. Results tracks keep working across plugin versions as long as the stored
+8. Results tracks keep working across plugin versions as long as the stored
    format (`formatVersion: 1`) is unchanged. A version that changes it must
    still read older results, or the panel will ask users to search again.
 

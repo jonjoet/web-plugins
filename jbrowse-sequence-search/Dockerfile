@@ -10,4 +10,4 @@ RUN --mount=type=secret,id=extra_ca,required=false \
     if [ -f /run/secrets/extra_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/extra_ca; fi; \
     npm ci --no-audit --no-fund
 COPY . .
-CMD ["sh", "-c", "npm run lint && npm test && npm run build"]
+CMD ["sh", "-c", "npm run lint && npm test && npm run build && npm run check:releases"]

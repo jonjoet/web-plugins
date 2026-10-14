@@ -9,7 +9,10 @@ matches in genome order.
 and JBrowse Desktop 4.3.x** (tested with 4.3.0; see [Compatibility](#compatibility)).
 
 - No search server, JBrowse fork or custom JBrowse build is needed. The plugin
-  is a single JavaScript file that you host yourself.
+  is a single versioned JavaScript file. It is served by this repository's
+  GitHub Pages site together with the other plugins, at
+  `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`
+  once deployed from `main`, and can equally be hosted on your own server.
 - Searching runs in JBrowse's background worker, so the browser stays
   responsive. The search reads each sequence in 1 Mb pieces.
 - [DEPLOYMENT.md](DEPLOYMENT.md) covers server layout, Web configuration,
@@ -168,8 +171,9 @@ docker run --rm --user "$(id -u):$(id -g)" \
 Behind a TLS-intercepting proxy, add
 `--secret id=extra_ca,src=/path/to/ca.pem` to `docker build`.
 
+The default command runs lint, tests, the build and `npm run check:releases`.
 Run a single step with `jbrowse-sequence-search:dev npm run lint`,
-`npm test` or `npm run build`. The build writes the versioned layout described
+`npm test`, `npm run build` or `npm run check:releases`. The build writes the versioned layout described
 in [DEPLOYMENT.md](DEPLOYMENT.md#artifacts), including `BUILD-INFO.json` with
 the source commit and dirty state you pass in. Builds are deterministic: the
 same commit gives byte-identical files.
@@ -182,6 +186,8 @@ same commit gives byte-identical files.
 | `src/index.jsx` | Plugin registration and menu entries |
 | `tests/*.test.js` | Unit tests (`node --test`), including brute-force comparisons |
 | `tests/browser/` | End-to-end checks against real JBrowse Web and Desktop releases |
+| `releases/` | Released builds served by GitHub Pages; immutable ([releases/README.md](releases/README.md)) |
+| `tools/` | Build script, release check, and JBrowse 4.3.0's shared-module list |
 | `example/` | Minimal runnable example ([example/README.md](example/README.md)) |
 | `verification/` | Saved evidence from browser runs |
 
