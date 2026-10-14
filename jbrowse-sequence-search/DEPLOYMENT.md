@@ -56,6 +56,14 @@ above. Downloading the file alone is **not** enough for JBrowse Desktop.
 Desktop loads plugins only from `http://` or `https://` URLs (see
 [Offline Desktop use](#offline-desktop-use)).
 
+**Who downloads the plugin:** each user's own browser (Web) or JBrowse
+Desktop app, never your JBrowse server. On Web, the server only hands out
+static files; the browser reads the plugin URL from `config.json` and
+downloads the file twice per page load, once for the page and once for
+JBrowse's web worker (seen in testing). Desktop downloads it every time a
+session opens. So the URL must be reachable from every user's machine.
+Whoever hosts it, for example GitHub for the Pages URL, sees those requests.
+
 Server requirements:
 
 - Serve `.js` as `text/javascript` (or `application/javascript`). Browsers
@@ -135,10 +143,11 @@ Reload JBrowse. The plugin store (**Tools → Plugin store**) lists
 *GenomeSequenceSearch (v0.1.0)* with a lock icon, and **Tools → Search
 genome…** appears.
 
-Users can also add the plugin to their own sessions through **Tools → Plugin
-store → Add custom plugin**. That adds it to that session only, and JBrowse
-warns about the session's plugins when such a session is reopened (per the
-4.3.0 source). Use `config.json` for everyone.
+On JBrowse Web 4.3.0, ordinary users cannot add plugins themselves: the
+Plugin store shows **Add custom plugin** only in admin mode (a page opened
+with an `adminKey`, as used by `jbrowse admin-server`; checked in the 4.3.0
+source). So for Web, the plugin goes in `config.json`, and then everyone has
+it.
 
 The tested configuration is in [example/config.json](example/config.json),
 with instructions in [example/README.md](example/README.md).
@@ -155,6 +164,8 @@ Tested with JBrowse Desktop 4.3.0. Each user:
    options* empty.
 4. Presses **Submit**. Desktop saves and reloads the session; the plugin
    store then lists *GenomeSequenceSearch (v0.1.0)* under Installed plugins.
+   If nothing seems to happen, see
+   [If Submit does nothing](#if-submit-does-nothing).
 5. Uses **Tools → Search genome…**.
 
 Desktop stores the plugin in that session's `.jbrowse` file
@@ -166,6 +177,35 @@ runtime-tested across new sessions.
 
 You can also distribute a prepared `.jbrowse` session file that already
 contains the `plugins` entry with your hosted URL.
+
+### If Submit does nothing
+
+JBrowse Desktop 4.3.0 gives no error message when the plugin cannot be
+loaded. After **Submit**, the dialog stays open, the plugin is not listed
+under Installed plugins, and the session looks unchanged. This was
+reproduced with a wrong plugin name and with an unreachable URL. Check:
+
+- **Name**: exactly `GenomeSequenceSearch` (case matters). It is not the file
+  or folder name.
+- **URL**: it opens in a normal browser on the same machine and shows
+  JavaScript starting with `/*! jbrowse-sequence-search`.
+
+The failed entry is still saved into that session's file. When the session
+is next opened, Desktop refuses to open it and the start screen shows, for
+example,
+`Error: Failed to load UMD bundle for jbrowse-sequence-search, JBrowsePluginjbrowse-sequence-search is undefined`
+(wrong name) or `Error: Failed to load script: …` (unreachable URL). To fix
+the session, open its `.jbrowse` file in a text editor, delete the bad entry
+from `"plugins": [ … ]`, and optionally add the correct one:
+
+```json
+{ "name": "GenomeSequenceSearch", "umdUrl": "https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js" }
+```
+
+A session you never saved under a name is kept as one of Desktop's
+autosaves. On Linux these were under `~/.config/JBrowse 2/` in testing; on
+macOS and Windows they are in Desktop's application-data folder (path not
+verified).
 
 ### Offline Desktop use
 
@@ -181,13 +221,22 @@ What was verified in JBrowse Desktop 4.3.0:
 Ordinary users need neither a local server nor any of this: they use your
 hosted URL while they can reach it. For offline use:
 
-- Copy `0.1.0/` to the laptop and serve it on the loopback interface, for
+- **With Docker** (tested): run the plugin site on the laptop with
+  [`site/compose.yaml`](../site/compose.yaml) (`docker compose up -d --build`
+  in `site/`; see [site/README.md](../site/README.md)). Then add the plugin
+  with
+  `http://127.0.0.1:8731/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`.
+  It restarts with Docker (`restart: unless-stopped`), but Docker must be
+  running whenever that session is opened. JBrowse Desktop 4.3.0 loaded the
+  plugin from this setup and searched successfully.
+- **Without Docker**: any static server on the loopback interface works, for
   example `python3 -m http.server 8731 --bind 127.0.0.1` from the directory
-  that contains `jbrowse-sequence-search/0.1.0/`. Then add the plugin with
+  that contains `jbrowse-sequence-search/0.1.0/`, with
   `http://127.0.0.1:8731/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`.
-  The server must be running whenever that session is opened. Plugin
-  loading over `http://127.0.0.1` was tested; this particular command was
-  not.
+  The Python command itself was not tested.
+- A session stores one plugin URL. A session saved with the localhost URL
+  works only where that server runs; one saved with the Pages URL needs
+  internet. To switch a session, edit `umdUrl` in its `.jbrowse` file.
 - **Recovering a session that will not open:** make the URL reachable again
   (connect to the network or start the local server). Alternatively, edit the
   `.jbrowse` file and remove the `GenomeSequenceSearch` entry from `plugins`.

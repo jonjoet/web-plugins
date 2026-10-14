@@ -1,0 +1,26 @@
+# Serves the whole plugin site (Trello Power-Up and every JBrowse plugin
+# release) from this machine, at the same paths as GitHub Pages:
+#   http://HOST:PORT/web-plugins/trello-check-date/...
+#   http://HOST:PORT/web-plugins/jbrowse-sequence-search/<version>/...
+#
+#   cp .env.example .env        # optional: adjust ports, address, Trello key
+#   docker compose up -d --build
+#
+# Run from this directory (site/), or pass -f site/compose.yaml.
+name: web-plugins
+
+services:
+  plugin-site:
+    build:
+      context: ..
+      dockerfile: site/Dockerfile
+      args:
+        TRELLO_APP_KEY: ${TRELLO_APP_KEY:-00000000000000000000000000000000}
+    image: web-plugins-site:local
+    environment:
+      # Port nginx listens on inside the container.
+      PLUGIN_SITE_CONTAINER_PORT: ${PLUGIN_SITE_CONTAINER_PORT:-8080}
+    ports:
+      # HOST_ADDRESS:HOST_PORT on this machine -> CONTAINER_PORT in the container.
+      - "${PLUGIN_SITE_HOST_ADDRESS:-127.0.0.1}:${PLUGIN_SITE_HOST_PORT:-8731}:${PLUGIN_SITE_CONTAINER_PORT:-8080}"
+    restart: unless-stopped

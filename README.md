@@ -5,7 +5,9 @@ Small, privately registered web plugins with portable static builds.
 All plugins are published together as one GitHub Pages site,
 `https://jonjoet.github.io/web-plugins/`, by
 [Plugin site (GitHub Pages)](.github/workflows/pages.yml); see [site/](site/README.md).
-Each plugin also has a checks-only workflow for pull requests.
+The same site can be served from your own machine with Docker Compose
+(`site/compose.yaml`, configurable host address and ports). Each plugin also
+has a checks-only workflow for pull requests.
 
 - [Trello: Overdue Checklist Items](trello-check-date/README.md) — a read-only
   checklist table preview (v0.2.1) for selected-board or all-board scans, with
