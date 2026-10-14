@@ -115,7 +115,9 @@ Only publish `dist/`, never the source directory or configuration file.
 1. Choose hosting. For GitHub Pages, stage this `dist/` as `trello-check-date/`
    inside the Pages artifact. The repository is `web-plugins`, so the connector is
    `https://OWNER.github.io/web-plugins/trello-check-date/apps/overdue-checklist/connector.html`.
-   The included workflow publishes after the repository variables and Pages source
+   The repository's combined site workflow
+   ([pages.yml](../.github/workflows/pages.yml)) stages it this way together with
+   the other plugins and publishes after the repository variables and Pages source
    are configured; follow [SETUP.md](SETUP.md). The preview can also be hosted on
    an existing static HTTPS site with the matching `APP_BASE`.
 2. For temporary development, forward the local port using your HTTPS tunnel

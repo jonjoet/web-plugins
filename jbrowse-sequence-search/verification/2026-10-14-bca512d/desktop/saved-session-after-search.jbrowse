@@ -1,0 +1,187 @@
+{
+  "configuration": {
+    "rpc": {
+      "defaultDriver": "WebWorkerRpcDriver",
+      "drivers": {
+        "MainThreadRpcDriver": {},
+        "WebWorkerRpcDriver": {}
+      }
+    },
+    "logoPath": {
+      "locationType": "UriLocation",
+      "uri": ""
+    }
+  },
+  "plugins": [
+    {
+      "name": "GenomeSequenceSearch",
+      "umdUrl": "http://127.0.0.1:33467/plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js"
+    }
+  ],
+  "assemblies": [
+    {
+      "name": "testgenome",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "testgenome-reference",
+        "adapter": {
+          "type": "IndexedFastaAdapter",
+          "fastaLocation": {
+            "locationType": "UriLocation",
+            "uri": "http://127.0.0.1:33467/data/testgenome.fa"
+          },
+          "faiLocation": {
+            "locationType": "UriLocation",
+            "uri": "http://127.0.0.1:33467/data/testgenome.fa.fai"
+          },
+          "metadataLocation": {
+            "locationType": "UriLocation",
+            "uri": "/path/to/fa.metadata.yaml"
+          }
+        },
+        "displays": [
+          {
+            "type": "LinearReferenceSequenceDisplay",
+            "displayId": "testgenome-reference-LinearReferenceSequenceDisplay"
+          },
+          {
+            "type": "LinearGCContentDisplay",
+            "displayId": "testgenome-reference-LinearGCContentDisplay"
+          }
+        ]
+      }
+    }
+  ],
+  "tracks": [
+    {
+      "type": "FeatureTrack",
+      "trackId": "genome-search-1792001204041-myqhj0",
+      "name": "Search: ACGTTGCATGCAGTCCTAGG in testgenome",
+      "assemblyNames": [
+        "testgenome"
+      ],
+      "category": [
+        "Genome search results"
+      ],
+      "adapter": {
+        "type": "GenomeSequenceSearchResultsAdapter",
+        "results": {
+          "formatVersion": 1,
+          "assemblyName": "testgenome",
+          "query": "ACGTTGCATGCAGTCCTAGG",
+          "strandMode": "both",
+          "ambiguous": false,
+          "allowAmbiguity": false,
+          "palindromic": false,
+          "regionCount": 3,
+          "totalBases": 2200000,
+          "maxHits": 10000,
+          "status": "complete",
+          "error": null,
+          "coveredThrough": null,
+          "createdAt": "2026-10-14T18:06:44.040Z",
+          "count": 6,
+          "refNames": [
+            "ctgA",
+            "ctgB",
+            "ctgC"
+          ],
+          "seqs": [],
+          "hits": "0.rs.+,0.lfli.+,0.190cs.-,1.0.+,1.3uw.-,2.8c.+"
+        }
+      }
+    }
+  ],
+  "internetAccounts": [
+    {
+      "type": "DropboxOAuthInternetAccount",
+      "internetAccountId": "dropboxOAuth",
+      "name": "Dropbox",
+      "description": "Account to access Dropbox files",
+      "clientId": "ykjqg1kr23pl1i7"
+    },
+    {
+      "type": "GoogleDriveOAuthInternetAccount",
+      "internetAccountId": "googleOAuth",
+      "name": "Google Drive",
+      "description": "Account to access Google Drive files",
+      "clientId": "109518325434-m86s8a5og8ijc5m6n7n8dk7e9586bg9i.apps.googleusercontent.com"
+    }
+  ],
+  "aggregateTextSearchAdapters": [],
+  "connections": [],
+  "defaultSession": {
+    "id": "NMaTMV9uhg",
+    "name": "Desktop genome search test",
+    "views": [
+      {
+        "id": "viewTest",
+        "type": "LinearGenomeView",
+        "tracks": [
+          {
+            "id": "i7tzIeG0E1",
+            "type": "ReferenceSequenceTrack",
+            "configuration": "testgenome-reference",
+            "displays": [
+              {
+                "id": "XBpcyoh6gW",
+                "type": "LinearReferenceSequenceDisplay",
+                "heightPreConfig": 120,
+                "configuration": "testgenome-reference-LinearReferenceSequenceDisplay"
+              }
+            ]
+          },
+          {
+            "id": "83EjIeOjgZ",
+            "type": "FeatureTrack",
+            "configuration": "genome-search-1792001204041-myqhj0",
+            "displays": [
+              {
+                "id": "NdXxze5yJt",
+                "type": "LinearBasicDisplay",
+                "configuration": "genome-search-1792001204041-myqhj0-LinearBasicDisplay"
+              }
+            ]
+          }
+        ],
+        "offsetPx": 8366165,
+        "bpPerPx": 0.11952191235059761,
+        "displayedRegions": [
+          {
+            "refName": "ctgA",
+            "start": 0,
+            "end": 2100000,
+            "assemblyName": "testgenome"
+          }
+        ]
+      }
+    ],
+    "widgets": {
+      "GridBookmark": {
+        "id": "GridBookmark",
+        "type": "GridBookmarkWidget"
+      },
+      "pluginStoreWidget": {
+        "id": "pluginStoreWidget",
+        "type": "PluginStoreWidget",
+        "filterText": ""
+      },
+      "genomeSequenceSearch": {
+        "id": "genomeSequenceSearch",
+        "type": "GenomeSequenceSearchWidget",
+        "viewId": "viewTest",
+        "assemblyName": "testgenome",
+        "queryText": "ACGTTGCATGCAGTCCTAGG",
+        "strandMode": "both",
+        "allowAmbiguity": false,
+        "resultTrackId": "genome-search-1792001204041-myqhj0",
+        "selectedIndex": 1
+      }
+    },
+    "activeWidgets": {
+      "pluginStoreWidget": "pluginStoreWidget",
+      "genomeSequenceSearch": "genomeSequenceSearch"
+    }
+  },
+  "preConfiguredSessions": []
+}

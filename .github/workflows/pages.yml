@@ -1,0 +1,78 @@
+name: Plugin site (GitHub Pages)
+
+# One GitHub Pages site for every plugin in this repository:
+#   https://OWNER.github.io/web-plugins/trello-check-date/...
+#   https://OWNER.github.io/web-plugins/jbrowse-sequence-search/<version>/...
+# A Pages deployment replaces the whole site, so all plugins are built and
+# staged together here. Never deploy one plugin from its own workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'trello-check-date/**'
+      - 'jbrowse-sequence-search/**'
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/trello-check-date.yml'
+      - '.github/workflows/jbrowse-sequence-search.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  trello:
+    name: Trello
+    uses: ./.github/workflows/trello-check-date.yml
+
+  jbrowse:
+    name: JBrowse sequence search
+    uses: ./.github/workflows/jbrowse-sequence-search.yml
+
+  site:
+    name: Build the combined site
+    needs: [trello, jbrowse]
+    # TRELLO_PAGES_ENABLED predates the combined site and still gates the
+    # whole deployment, so existing repository settings keep working.
+    if: github.ref == 'refs/heads/main' && vars.TRELLO_PAGES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    container: node:22.23.2-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Trello dependencies
+        working-directory: trello-check-date
+        run: npm ci --no-audit --no-fund
+      - name: Configure public API key
+        working-directory: trello-check-date
+        run: npm run config
+        env:
+          TRELLO_APP_KEY: ${{ vars.TRELLO_APP_KEY }}
+      - name: Build Trello
+        working-directory: trello-check-date
+        run: npm run build
+      - name: Stage every plugin
+        run: sh site/stage-site.sh trello-check-date/dist _site
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: site
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

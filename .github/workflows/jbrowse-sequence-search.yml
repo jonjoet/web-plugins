@@ -1,0 +1,66 @@
+name: JBrowse sequence search checks
+
+# Checks only. Deployment is in pages.yml, which calls this workflow and
+# publishes one site containing every plugin.
+on:
+  pull_request:
+    paths:
+      - 'jbrowse-sequence-search/**'
+      - '.github/workflows/jbrowse-sequence-search.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, test and build
+    runs-on: ubuntu-latest
+    container: node:22.23.2-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436
+    defaults:
+      run:
+        working-directory: jbrowse-sequence-search
+    steps:
+      - uses: actions/checkout@v6
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_DIRTY: 'no'
+      # Every release folder must verify against its checksums, and the
+      # current source must rebuild byte-identically to its own release.
+      - run: npm run check:releases
+      # A downloadable build for review; nothing is deployed or published.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jbrowse-sequence-search-build
+          path: jbrowse-sequence-search/dist/
+          if-no-files-found: error
+
+  releases-unchanged:
+    name: Published releases are unchanged
+    # Runs on the plain runner because the Node image has no git.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Refuse edits, renames or deletions of existing release files
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "No base commit for this event; nothing to compare."
+            exit 0
+          fi
+          changed=$(git diff --name-status --diff-filter=MDRT "$BASE" HEAD -- jbrowse-sequence-search/releases/)
+          if [ -n "$changed" ]; then
+            echo "Released files are immutable (sessions point at their URLs). Add a new version instead:"
+            echo "$changed"
+            exit 1
+          fi
+          echo "No existing release files were changed."
