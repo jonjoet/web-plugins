@@ -1,6 +1,6 @@
 {
   "name": "jbrowse-sequence-search",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "JBrowse 2 plugin: whole-assembly DNA sequence search with a clickable results list and results track",
   "private": true,
   "type": "module",

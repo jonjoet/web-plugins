@@ -22,7 +22,7 @@ requests. Lay the files out like this:
 ```
 site/
   jbrowse/                     ← unzipped jbrowse-web-v4.3.0.zip
-  jbrowse-plugins/jbrowse-sequence-search/0.1.0/  ← from dist/
+  jbrowse-plugins/jbrowse-sequence-search/0.1.1/  ← from dist/
   example/                     ← this directory
 ```
 

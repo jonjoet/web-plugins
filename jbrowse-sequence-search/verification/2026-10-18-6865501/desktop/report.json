@@ -1,0 +1,74 @@
+{
+  "jbrowse": "JBrowse Desktop 4.3.0 (Linux build run under Xvfb)",
+  "plugin": "jbrowse-sequence-search 0.1.1",
+  "pluginUrl": "/plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js",
+  "sourceCommit": "68655012dab8b482f27ccfccac8f03cb8e0b7aeb",
+  "sourceDirty": "no",
+  "date": "2026-10-18T02:38:30.053Z",
+  "passed": 7,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "Desktop opens the test session",
+      "ok": true,
+      "detail": {
+        "desktopVersion": "4.3.0",
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) JBrowse2/4.3.0 Chrome/146.0.7680.179 Electron/41.2.0 Safari/537.36"
+      }
+    },
+    {
+      "name": "install via Plugin store → Add custom plugin (name + hosted URL)",
+      "ok": true,
+      "detail": {
+        "pluginUrl": "http://127.0.0.1:41125/plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js",
+        "fetched": 2
+      }
+    },
+    {
+      "name": "whole-assembly search lists every planted hit",
+      "ok": true,
+      "detail": {
+        "rows": [
+          "1 ctgA 1,001 1,020 + ACGTTGCATGCAGTCCTAGG",
+          "2 ctgA 999,991 1,000,010 + ACGTTGCATGCAGTCCTAGG",
+          "3 ctgA 2,099,981 2,100,000 − ACGTTGCATGCAGTCCTAGG",
+          "4 ctgB 1 20 + ACGTTGCATGCAGTCCTAGG",
+          "5 ctgB 5,001 5,020 − ACGTTGCATGCAGTCCTAGG",
+          "6 ctgC 301 320 + ACGTTGCATGCAGTCCTAGG"
+        ]
+      }
+    },
+    {
+      "name": "clicking a result and Previous/Next navigate the view",
+      "ok": true,
+      "detail": {
+        "afterNext": "ctgB:4,951..5,070",
+        "afterPrevious": "ctgA:999,941..1,000,060"
+      }
+    },
+    {
+      "name": "results track saved by Desktop holds the same hits as the list",
+      "ok": true,
+      "detail": {
+        "savedIn": "<output>/desktop-test.jbrowse",
+        "plugins": [
+          {
+            "name": "GenomeSequenceSearch",
+            "umdUrl": "http://127.0.0.1:41125/plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js"
+          }
+        ]
+      }
+    },
+    {
+      "name": "results remain after quitting and reopening the session",
+      "ok": true
+    },
+    {
+      "name": "a file:// plugin URL is rejected by Desktop",
+      "ok": true,
+      "detail": {
+        "message": "Error: cannot load plugins using protocol \"file:\""
+      }
+    }
+  ]
+}

@@ -6,11 +6,11 @@ system and your hosted URL. Use JBrowse Desktop **4.3.x** (Help → About).
 
 ## Prepare
 
-1. Use the Pages URL, or copy `releases/0.1.0/` (or the unpacked release
+1. Use the Pages URL, or copy `releases/0.1.1/` (or the unpacked release
    archive) to your server, e.g.
-   `https://YOUR-SERVER/jbrowse-plugins/jbrowse-sequence-search/0.1.0/`.
+   `https://YOUR-SERVER/jbrowse-plugins/jbrowse-sequence-search/0.1.1/`.
 2. Open the plugin URL in a normal browser. It should show JavaScript
-   starting with `/*! jbrowse-sequence-search 0.1.0`.
+   starting with `/*! jbrowse-sequence-search 0.1.1`.
 3. Optional test data: copy `example/data/` from this repository to the
    server. In Desktop, add it with **File → Open assembly…**: name
    `example`, FASTA `https://YOUR-SERVER/…/example.fa` and index
@@ -21,7 +21,7 @@ system and your hosted URL. Use JBrowse Desktop **4.3.x** (Help → About).
 
 | # | Do | Expect |
 | --- | --- | --- |
-| 1 | Open a session with a genome. **Tools → Plugin store → Add custom plugin**. Name `GenomeSequenceSearch` (exactly), URL `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js` or your own server's. **Submit**. | The session reloads. The plugin store lists *GenomeSequenceSearch (v0.1.0)* under Installed plugins. If nothing happens, the name or URL is wrong and a bad entry was saved: see [If Submit does nothing](../DEPLOYMENT.md#if-submit-does-nothing). |
+| 1 | Open a session with a genome. **Tools → Plugin store → Add custom plugin**. Name `GenomeSequenceSearch` (exactly), URL `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js` or your own server's. **Submit**. | The session reloads. The plugin store lists *GenomeSequenceSearch (v0.1.1)* under Installed plugins. If nothing happens, the name or URL is wrong and a bad entry was saved: see [If Submit does nothing](../DEPLOYMENT.md#if-submit-does-nothing). |
 | 2 | **Tools → Search genome…** | A *Search genome* panel opens on the right. The assembly is the one in your view, and the text says it searches all N sequences of that assembly. |
 | 3 | Paste a sequence you know occurs on more than one chromosome. For the example genome use `ACGTTGCATGCAGTCCTAGG`. Press **Search**. | A progress bar, then a green *Found N matches* message. The example gives 3 matches: chr1:2,001-2,020 (+), chr1:15,001-15,020 (−), chr2:7,981-8,000 (+). A *Search: …* track appears in the view. |
 | 4 | Click a row on another chromosome. | The view jumps there; the match is centred with flanking sequence and drawn in the results track. |

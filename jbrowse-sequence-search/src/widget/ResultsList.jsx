@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react';
-import { formatNumber, strandLabel } from '../search/format.js';
+import { formatNumber, shortSequence, strandLabel } from '../search/format.js';
+
+// Long exact queries are shown shortened; coordinates stay exact.
+const LIST_SEQUENCE_MAX = 100;
 
 // Two lines per row: coordinates, then the matched sequence, so all columns
 // stay readable in a narrow side panel.
@@ -32,7 +35,7 @@ function Row({ hit, selected, onSelect, style }) {
         <span role="cell" style={numeric}>{formatNumber(hit.start + 1)}</span>
         <span role="cell" style={numeric}>{formatNumber(hit.end)}</span>
         <span role="cell" style={{ ...cell, textAlign: 'center' }}>{strandLabel(hit.strand)}</span>
-        <span role="cell" style={{ ...cell, gridColumn: '2 / -1', fontFamily: 'monospace', opacity: 0.8 }} title={hit.matched}>{hit.matched}</span>
+        <span role="cell" style={{ ...cell, gridColumn: '2 / -1', fontFamily: 'monospace', opacity: 0.8 }} title={shortSequence(hit.matched, LIST_SEQUENCE_MAX)}>{shortSequence(hit.matched, LIST_SEQUENCE_MAX)}</span>
       </button>
     </div>
   );

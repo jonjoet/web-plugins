@@ -5,13 +5,13 @@ sequence and shows the matches as a clickable list and as a normal feature
 track. Click a match to go to it; use **Previous**/**Next** to step through
 matches in genome order.
 
-**Version 0.1.0** · plugin name `GenomeSequenceSearch` · supports **JBrowse Web
+**Version 0.1.1** · plugin name `GenomeSequenceSearch` · supports **JBrowse Web
 and JBrowse Desktop 4.3.x** (tested with 4.3.0; see [Compatibility](#compatibility)).
 
 - No search server, JBrowse fork or custom JBrowse build is needed. The plugin
   is a single versioned JavaScript file. It is served by this repository's
   GitHub Pages site together with the other plugins, at
-  `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`
+  `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js`
   once deployed from `main`, and can equally be hosted on your own server.
 - Searching runs in JBrowse's background worker, so the browser stays
   responsive. The search reads each sequence in 1 Mb pieces.
@@ -19,6 +19,8 @@ and JBrowse Desktop 4.3.x** (tested with 4.3.0; see [Compatibility](#compatibili
   Desktop installation, offline use and upgrades.
 - [docs/DESIGN.md](docs/DESIGN.md) records design decisions and the JBrowse
   4.3.0 source findings they rest on.
+- [CHANGELOG.md](CHANGELOG.md) lists what changed in each version and how to
+  upgrade.
 - [docs/MANUAL-DESKTOP-CHECK.md](docs/MANUAL-DESKTOP-CHECK.md) is a short
   manual check for your own Desktop installation and server.
 - [verification/](verification/) holds the saved evidence from the browser
@@ -66,7 +68,7 @@ while you navigate. You can reopen it from either menu.
 | Chunk boundaries | Sequences are read in 1 Mb chunks that overlap by query length − 1. Each match belongs to the chunk containing its start, so none is lost or duplicated (tested exhaustively against brute force with chunk sizes from 1 bp). |
 | Pasted text | Spaces, line breaks and digits (GenBank/EMBL numbering) are ignored, as is one FASTA header line (`>…`) at the top. The panel says what was ignored. More than one FASTA record is rejected. |
 | Invalid input | `U`, gap characters (`-`), regular-expression syntax (`. * [ ] ( ) |` …) and other non-nucleotide letters are rejected with an explanation; nothing is silently dropped. |
-| Length | 1–1,000 bases; 1–100 with ambiguity codes. |
+| Length | 1–10,000 bases for exact searches; 1–100 with ambiguity codes. Long sequences are shown shortened in the list and in track features (first and last bases plus the length); coordinates are always exact. |
 | Ambiguity codes | Off by default; a query containing `N`, `R`, `Y`, … is rejected until **Allow ambiguity codes** is ticked. Then each IUPAC code matches its set of bases (`N` = A/C/G/T, `R` = A/G, `Y` = C/T, `S`, `W`, `K`, `M`, `B`, `D`, `H`, `V`). This is not regular-expression syntax. A query code never matches an `N` (or any non-ACGT letter) in the genome, so assembly gaps are never matches. The list shows the actual genome bases for each match. |
 | Result limit | The search stops after **10,000** matches, see below. |
 | Regular expressions | Not supported in this release (see [docs/DESIGN.md](docs/DESIGN.md#regular-expressions)). |
@@ -137,7 +139,8 @@ Before upgrading JBrowse, follow the upgrade checklist in
 ## Known limitations
 
 - Exact or IUPAC matching only. There are no regular expressions, mismatches
-  or gaps, and the query is at most 1,000 bases (100 with ambiguity codes).
+  or gaps, and the query is at most 10,000 bases (100 with ambiguity codes).
+  A single difference anywhere in a long query means no match.
 - At most 10,000 matches per search, clearly labelled when reached.
 - Circular-origin-spanning matches are not found (see above).
 - One assembly per search.

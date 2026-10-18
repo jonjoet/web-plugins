@@ -2,7 +2,7 @@
   "plugins": [
     {
       "name": "GenomeSequenceSearch",
-      "url": "/jbrowse-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js"
+      "url": "/jbrowse-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js"
     }
   ],
   "assemblies": [

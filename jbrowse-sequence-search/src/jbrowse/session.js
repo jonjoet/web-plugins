@@ -1,7 +1,7 @@
 import { getSnapshot } from 'mobx-state-tree';
 import { isSessionModelWithWidgets, isSessionWithAddTracks } from '@jbrowse/core/util';
 import { pickAssembly } from '../search/assembly.js';
-import { formatLocation, navigationWindow } from '../search/format.js';
+import { formatLocation, navigationWindow, shortSequence } from '../search/format.js';
 import { ADAPTER_TYPE } from './ResultsAdapter.js';
 
 export const WIDGET_TYPE = 'GenomeSequenceSearchWidget';
@@ -55,7 +55,7 @@ export async function loadAssembly(session, assemblyName) {
 }
 
 function shortQuery(query) {
-  return query.length > 24 ? `${query.slice(0, 20)}… (${query.length} bp)` : query;
+  return shortSequence(query, 32);
 }
 
 export function trackName(stored) {

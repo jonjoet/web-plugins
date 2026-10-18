@@ -5,8 +5,8 @@ ways to host it:
 
 - **This repository's GitHub Pages site**, which serves every plugin in the
   repository at once. See [GitHub Pages](#github-pages). The released URL
-  for 0.1.0 is
-  `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`
+  for 0.1.1 is
+  `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js`
   once the site is deployed from `main`.
 - **Your own web server**, next to your JBrowse Web deployment or anywhere
   your users' browsers and JBrowse Desktop can reach. Pages is optional; the
@@ -30,25 +30,25 @@ Build as described in [README.md](README.md#development). Build output:
 ```
 dist/
   jbrowse-sequence-search/
-    0.1.0/
+    0.1.1/
       jbrowse-sequence-search.js       ← the plugin (≈29 KB)
       jbrowse-sequence-search.js.map   ← source map (optional to publish)
       BUILD-INFO.json                  ← version, source commit, dirty flag,
                                           JBrowse modules used, toolchain
       SHA256SUMS                       ← checksums of the three files above
-  jbrowse-sequence-search-0.1.0.tar.gz ← the 0.1.0/ directory, for download
+  jbrowse-sequence-search-0.1.1.tar.gz ← the 0.1.1/ directory, for download
 ```
 
-To publish a version, copy `dist/jbrowse-sequence-search/0.1.0/` to the same
+To publish a version, copy `dist/jbrowse-sequence-search/0.1.1/` to the same
 path under a plugin directory on your server, for example:
 
 ```
 /var/www/jbrowse/                      (your JBrowse Web 4.3.x files)
-/var/www/jbrowse-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js
+/var/www/jbrowse-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js
 ```
 
 Before copying, check the files:
-`(cd dist/jbrowse-sequence-search/0.1.0 && sha256sum -c SHA256SUMS)`.
+`(cd dist/jbrowse-sequence-search/0.1.1 && sha256sum -c SHA256SUMS)`.
 
 The tarball is the downloadable artifact: it holds exactly the versioned
 directory, so `tar -xzf … -C /var/www/jbrowse-plugins` recreates the layout
@@ -99,9 +99,9 @@ The site serves what is committed in `releases/`, never a fresh build:
 
 | URL | Contents |
 | --- | --- |
-| `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js` | the plugin |
-| `…/0.1.0/jbrowse-sequence-search.js.map` | source map |
-| `…/0.1.0/BUILD-INFO.json`, `…/0.1.0/SHA256SUMS` | provenance and checksums |
+| `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js` | the plugin |
+| `…/0.1.1/jbrowse-sequence-search.js.map` | source map |
+| `…/0.1.1/BUILD-INFO.json`, `…/0.1.1/SHA256SUMS` | provenance and checksums |
 
 Pages serves `.js` as JavaScript over HTTPS, so both JBrowse Web (including
 an `https://` deployment on another host) and Desktop can load it. Notes:
@@ -111,9 +111,11 @@ an `https://` deployment on another host) and Desktop can load it. Notes:
 - When Pages is the host, plugin availability depends on GitHub. For Desktop
   this matters more, because a session whose plugin URL fails will not open.
   You can mirror the same folder on your own server and use that URL instead.
-- `releases/0.1.0/` holds exactly the build verified in
-  [`verification/2026-10-14-bca512d/`](verification/2026-10-14-bca512d/), with
-  the same checksums.
+- Each release folder holds exactly a verified build, with the same
+  checksums: `releases/0.1.1/` from
+  [`verification/2026-10-18-6865501/`](verification/2026-10-18-6865501/), and
+  `releases/0.1.0/` from
+  [`verification/2026-10-14-bca512d/`](verification/2026-10-14-bca512d/).
 
 ## JBrowse Web
 
@@ -126,7 +128,7 @@ host name:
   "plugins": [
     {
       "name": "GenomeSequenceSearch",
-      "url": "/jbrowse-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js"
+      "url": "/jbrowse-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js"
     }
   ]
 }
@@ -134,13 +136,13 @@ host name:
 
 `url` and `umdUrl` are equivalent. An absolute URL also works, including
 the Pages URL
-`https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`
+`https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js`
 if you prefer not to copy the file onto your JBrowse server. The JBrowse documentation
 also describes `"umdLoc": { "uri": "..." }`, which resolves relative to
 `config.json`; that form was not tested here.
 
 Reload JBrowse. The plugin store (**Tools → Plugin store**) lists
-*GenomeSequenceSearch (v0.1.0)* with a lock icon, and **Tools → Search
+*GenomeSequenceSearch (v0.1.1)* with a lock icon, and **Tools → Search
 genome…** appears.
 
 On JBrowse Web 4.3.0, ordinary users cannot add plugins themselves: the
@@ -159,11 +161,11 @@ Tested with JBrowse Desktop 4.3.0. Each user:
 1. Opens their session (or creates one).
 2. Chooses **Tools → Plugin store**, then **Add custom plugin**.
 3. Enters **Plugin name** `GenomeSequenceSearch` and **Plugin URL**
-   `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`
+   `https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js`
    (Pages), or your own server's URL for the same folder. Leave *Advanced
    options* empty.
 4. Presses **Submit**. Desktop saves and reloads the session; the plugin
-   store then lists *GenomeSequenceSearch (v0.1.0)* under Installed plugins.
+   store then lists *GenomeSequenceSearch (v0.1.1)* under Installed plugins.
    If nothing seems to happen, see
    [If Submit does nothing](#if-submit-does-nothing).
 5. Uses **Tools → Search genome…**.
@@ -199,7 +201,7 @@ the session, open its `.jbrowse` file in a text editor, delete the bad entry
 from `"plugins": [ … ]`, and optionally add the correct one:
 
 ```json
-{ "name": "GenomeSequenceSearch", "umdUrl": "https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js" }
+{ "name": "GenomeSequenceSearch", "umdUrl": "https://jonjoet.github.io/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js" }
 ```
 
 A session you never saved under a name is kept as one of Desktop's
@@ -225,14 +227,14 @@ hosted URL while they can reach it. For offline use:
   [`site/compose.yaml`](../site/compose.yaml) (`docker compose up -d --build`
   in `site/`; see [site/README.md](../site/README.md)). Then add the plugin
   with
-  `http://127.0.0.1:8731/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`.
+  `http://127.0.0.1:8731/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js`.
   It restarts with Docker (`restart: unless-stopped`), but Docker must be
   running whenever that session is opened. JBrowse Desktop 4.3.0 loaded the
   plugin from this setup and searched successfully.
 - **Without Docker**: any static server on the loopback interface works, for
   example `python3 -m http.server 8731 --bind 127.0.0.1` from the directory
-  that contains `jbrowse-sequence-search/0.1.0/`, with
-  `http://127.0.0.1:8731/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`.
+  that contains `jbrowse-sequence-search/0.1.1/`, with
+  `http://127.0.0.1:8731/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js`.
   The Python command itself was not tested.
 - A session stores one plugin URL. A session saved with the localhost URL
   works only where that server runs; one saved with the Pages URL needs
@@ -268,6 +270,13 @@ hosted URL while they can reach it. For offline use:
 8. Results tracks keep working across plugin versions as long as the stored
    format (`formatVersion: 1`) is unchanged. A version that changes it must
    still read older results, or the panel will ask users to search again.
+
+### Moving to a newer plugin version
+
+[CHANGELOG.md](CHANGELOG.md) lists each version's changes and its upgrade
+steps. In short: change the version in the URL in Web's `config.json`, and
+in each Desktop session replace the plugin entry. Old versions stay on the
+site, so sessions you don't update keep working.
 
 ### Upgrading JBrowse
 
