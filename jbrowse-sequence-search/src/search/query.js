@@ -1,6 +1,7 @@
+import { formatNumber } from './format.js';
 import { AMBIGUITY_CODES, isConcrete, reverseComplement } from './iupac.js';
 
-export const MAX_EXACT_LENGTH = 1000;
+export const MAX_EXACT_LENGTH = 10_000;
 export const MAX_AMBIGUOUS_LENGTH = 100;
 
 const REGEX_SYNTAX = /[.*+?^$()[\]{}|\\]/;
@@ -62,8 +63,8 @@ export function parseQuery(text, { allowAmbiguity = false } = {}) {
   const limit = ambiguous ? MAX_AMBIGUOUS_LENGTH : MAX_EXACT_LENGTH;
   if (sequence.length > limit) {
     return invalid(ambiguous
-      ? `Sequences with ambiguity codes can be at most ${limit} bases (this one is ${sequence.length}).`
-      : `Sequences can be at most ${limit} bases (this one is ${sequence.length}).`);
+      ? `Sequences with ambiguity codes can be at most ${formatNumber(limit)} bases (this one is ${formatNumber(sequence.length)}).`
+      : `Sequences can be at most ${formatNumber(limit)} bases (this one is ${formatNumber(sequence.length)}).`);
   }
   const reverse = reverseComplement(sequence);
   return {

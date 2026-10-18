@@ -49,7 +49,8 @@ test('regex syntax and other characters are rejected with explanations', () => {
 
 test('enforces length limits', () => {
   assert.equal(parseQuery('A'.repeat(MAX_EXACT_LENGTH)).ok, true);
-  assert.match(parseQuery('A'.repeat(MAX_EXACT_LENGTH + 1)).error, /at most 1000 bases/);
+  assert.equal(MAX_EXACT_LENGTH, 10_000);
+  assert.match(parseQuery('A'.repeat(MAX_EXACT_LENGTH + 1)).error, /at most 10,000 bases \(this one is 10,001\)/);
   assert.equal(parseQuery('N'.repeat(MAX_AMBIGUOUS_LENGTH), { allowAmbiguity: true }).ok, true);
   assert.match(parseQuery('N'.repeat(MAX_AMBIGUOUS_LENGTH + 1), { allowAmbiguity: true }).error, /ambiguity codes can be at most 100/);
 });

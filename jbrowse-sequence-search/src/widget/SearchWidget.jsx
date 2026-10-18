@@ -5,49 +5,9 @@ import {
   MenuItem, Radio, RadioGroup, TextField, Typography,
 } from '@mui/material';
 import { formatBases, formatLocation, formatNumber } from '../search/format.js';
+import { outcomeMessage, plural, queryHeading, scopeText } from '../search/messages.js';
 import { sessionAssemblyNames } from '../jbrowse/session.js';
 import ResultsList from './ResultsList.jsx';
-
-const STRANDS = {
-  both: 'both strands',
-  forward: 'the forward (+) strand only',
-  reverse: 'the reverse (−) strand only',
-};
-
-function plural(n, word) {
-  return `${formatNumber(n)} ${word}${n === 1 ? '' : 'es'}`;
-}
-
-function scopeText({ assemblyName, regionCount, totalBases, strandMode }) {
-  return `all ${formatNumber(regionCount)} sequences of ${assemblyName} (${formatBases(totalBases)}), ${STRANDS[strandMode]}`;
-}
-
-function coverageText(r) {
-  if (!r.coveredThrough) return 'It stopped before any part of the genome was fully searched.';
-  const { refName, position } = r.coveredThrough;
-  return `Matches starting up to ${refName}:${formatNumber(position)} are listed; later positions were not searched.`;
-}
-
-// One message that states exactly what was searched and whether the list is
-// complete.
-export function outcomeMessage(r) {
-  const scope = scopeText(r);
-  switch (r.status) {
-    case 'complete':
-      return r.count === 0
-        ? { severity: 'info', text: `No matches. Searched ${scope}.` }
-        : { severity: 'success', text: `Found ${plural(r.count, 'match')}. Searched ${scope}.` };
-    case 'limit':
-      return {
-        severity: 'warning',
-        text: `Incomplete: stopped at the limit of ${formatNumber(r.maxHits)} matches. The first ${formatNumber(r.count)} in genome order are listed, through ${r.coveredThrough.refName}:${formatNumber(r.coveredThrough.position)}; the rest of ${r.assemblyName} was not searched. Use a longer sequence to narrow the search.`,
-      };
-    case 'cancelled':
-      return { severity: 'warning', text: `Incomplete: search stopped. ${plural(r.count, 'match')} found before stopping. ${coverageText(r)}` };
-    default:
-      return { severity: 'error', text: `Incomplete: the search failed (${r.error}). ${plural(r.count, 'match')} found before the failure. ${coverageText(r)}` };
-  }
-}
 
 const Form = observer(function Form({ model }) {
   const session = getSession(model);
@@ -150,7 +110,7 @@ const Results = observer(function Results({ model }) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
       <Alert severity={message.severity} data-testid="genome-search-outcome" data-status={results.status}>
-        <strong>{results.query.length > 40 ? `${results.query.slice(0, 36)}…` : results.query}</strong>
+        <strong>{queryHeading(results.query)}</strong>
         {' in '}{results.assemblyName}: {message.text}
         {results.palindromic && results.strandMode === 'both'
           ? ' This sequence is its own reverse complement, so each site is listed once, with strand “both”.' : ''}

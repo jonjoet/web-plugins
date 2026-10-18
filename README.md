@@ -16,7 +16,7 @@ has a checks-only workflow for pull requests.
   use; collection completeness and broader live acceptance remain pending.
   See the [setup guide](trello-check-date/SETUP.md) to enable it.
 - [JBrowse: Genome sequence search](jbrowse-sequence-search/README.md) — a
-  JBrowse Web/Desktop 4.3.x plugin (v0.1.0) that searches every sequence of an
+  JBrowse Web/Desktop 4.3.x plugin (v0.1.1) that searches every sequence of an
   assembly for a DNA sequence (both strands, overlapping, optional IUPAC
   codes) and shows the matches as a clickable list with Previous/Next plus a
   results track. One versioned JavaScript file, served from the Pages site at

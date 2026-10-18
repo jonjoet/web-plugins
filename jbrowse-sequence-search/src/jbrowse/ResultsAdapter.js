@@ -3,7 +3,7 @@ import { BaseFeatureDataAdapter } from '@jbrowse/core/data_adapters/BaseAdapter'
 import { SimpleFeature } from '@jbrowse/core/util';
 import { ObservableCreate } from '@jbrowse/core/util/rxjs';
 import { decodeResults } from '../search/results.js';
-import { strandLabel } from '../search/format.js';
+import { featureData } from '../search/features.js';
 
 export const ADAPTER_TYPE = 'GenomeSequenceSearchResultsAdapter';
 
@@ -48,19 +48,7 @@ export class ResultsAdapter extends BaseFeatureDataAdapter {
         else hi = mid;
       }
       for (let i = lo; i < hits.length && hits[i].start < region.end; i++) {
-        const hit = hits[i];
-        observer.next(new SimpleFeature({
-          uniqueId: `genome-search-${hit.index}`,
-          refName: hit.refName,
-          start: hit.start,
-          end: hit.end,
-          strand: hit.strand,
-          type: 'sequence_match',
-          name: `Match ${hit.index + 1}`,
-          description: `${strandLabel(hit.strand)} strand, ${results.query}`,
-          matched_sequence: hit.matched,
-          match_number: `${hit.index + 1} of ${results.count}`,
-        }));
+        observer.next(new SimpleFeature(featureData(hits[i], results)));
       }
       observer.complete();
     });

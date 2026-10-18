@@ -39,7 +39,7 @@ docker compose down           # stop
 
 With the defaults, open `http://127.0.0.1:8731/web-plugins/`. The JBrowse
 plugin is then at
-`http://127.0.0.1:8731/web-plugins/jbrowse-sequence-search/0.1.0/jbrowse-sequence-search.js`.
+`http://127.0.0.1:8731/web-plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js`.
 
 Settings in `site/.env` (all optional; `.env` is git-ignored):
 

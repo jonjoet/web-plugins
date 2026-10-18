@@ -13,6 +13,14 @@ export function formatBases(n) {
   return `${formatNumber(n)} bp`;
 }
 
+// A sequence shortened for display when longer than `max` characters:
+// the first and last bases with the length, e.g. "ACGTAC…GGTACC (10,000 bp)".
+export function shortSequence(sequence, max) {
+  if (sequence.length <= max) return sequence;
+  const keep = Math.max(4, Math.floor(max / 2) - 6);
+  return `${sequence.slice(0, keep)}…${sequence.slice(-keep)} (${formatNumber(sequence.length)} bp)`;
+}
+
 export function strandLabel(strand) {
   if (strand === FORWARD) return '+';
   if (strand === BOTH) return 'both';

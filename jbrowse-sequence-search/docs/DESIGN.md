@@ -113,6 +113,25 @@ list and the track both decode that one value. In the Web check, after
 several searches including a 10,000-hit one, the session in
 `sessionStorage` was about 128 K characters.
 
+## Query length limits
+
+Exact queries may be up to 10,000 bases (raised from 1,000 in 0.1.1); queries
+with ambiguity codes up to 100.
+
+- Exact search uses `indexOf`, whose speed hardly depends on query length:
+  a 10,000-base query scans a 1 Mb chunk in about 7 ms, the same as a
+  20-mer (Node measurement). Each 1 Mb chunk reads `queryLength − 1` extra
+  bases, about 1% at 10,000.
+- The query is stored once per results track and once in the panel's saved
+  form, so 10,000 bases adds about 20 KB to a session.
+- Track features are passed between JBrowse's worker and the page for
+  everything on screen, so since 0.1.1 they carry the sequence shortened to
+  at most 100 characters (`src/search/features.js`), not the whole query.
+  The list shortens it the same way. For exact searches nothing is lost: an
+  exact match always reads as the query.
+- Ambiguity queries stay at 100 bases: the lookahead pattern's cost grows
+  with query length, and each hit stores its own genome bases.
+
 ## Regular expressions
 
 Not in this release. General regexes have unbounded match lengths, so the

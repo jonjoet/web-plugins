@@ -273,6 +273,40 @@ await check('no matches is reported as a complete search', async () => {
   await screenshot('no-matches');
 });
 
+await check('a 10,000-base query spanning a chunk boundary is found, with small track features', async () => {
+  const long = genomes.testgenome.ctgA.slice(995_000, 1_005_000);
+  await testId('genome-search-query').fill(`${long}A`);
+  await page.getByText(/at most 10,000 bases \(this one is 10,001\)/).waitFor();
+  assert.equal(await testId('genome-search-submit').isDisabled(), true, '10,001 bases rejected');
+  await runSearch(long);
+  const state = await widgetState();
+  assert.equal(state.status, 'complete');
+  assert.deepEqual(strip(state.hits), [{ refName: 'ctgA', start: 995_000, end: 1_005_000, strand: 1 }]);
+  const row = (await testId('genome-search-row').first().innerText()).replace(/\s+/g, ' ');
+  assert.match(row, /^1 ctgA 995,001 1,005,000 \+ [ACGT]+…[ACGT]+ \(10,000 bp\)$/);
+  assert.match(await outcome().innerText(), /\(10,000 bp\) in testgenome: Found 1 match\./);
+  const feature = await page.evaluate(async trackId => {
+    const session = window.JBrowseSession;
+    const conf = session.tracks.find(t => t.trackId === trackId);
+    const feats = await session.rpcManager.call('e2e-check', 'CoreGetFeatures', {
+      sessionId: 'e2e-check', adapterConfig: JSON.parse(JSON.stringify(conf.adapter)),
+      regions: [{ refName: 'ctgA', start: 0, end: 2_100_000, assemblyName: 'testgenome' }],
+    });
+    return feats.map(f => f.toJSON());
+  }, state.trackId);
+  assert.equal(feature.length, 1);
+  assert.equal(feature[0].end - feature[0].start, 10_000);
+  const bytes = JSON.stringify(feature[0]).length;
+  assert.ok(bytes < 500, `feature payload ${bytes} bytes`);
+  await testId('genome-search-row').first().click();
+  await page.waitForFunction(() => {
+    const v = window.JBrowseSession.views[0];
+    return v.pxToBp(0).refName === 'ctgA' && v.pxToBp(0).coord <= 995_001 && v.pxToBp(v.width).coord >= 1_005_000;
+  }, null, { timeout: 30_000 });
+  await screenshot('long-query');
+  return { featureBytes: bytes, matchedSequence: feature[0].matched_sequence };
+});
+
 await check('a result limit is labelled incomplete and the long list stays usable', async () => {
   await runSearch('AC');
   const state = await widgetState();
@@ -345,7 +379,7 @@ await check('assembly follows the view the command is opened from', async () => 
   await page.getByTestId('view_menu_icon').nth(1).click();
   await page.getByText('Whole assembly, with a results list').click();
   await page.waitForFunction(() => window.JBrowseSession.widgets.get('genomeSequenceSearch').assemblyName === 'othergenome');
-  assert.match(await testId('genome-search-scope').innerText(), /all 1 sequences of othergenome/);
+  assert.match(await testId('genome-search-scope').innerText(), /the 1 sequence of othergenome \(10\.0 kb\)/);
   await runSearch(QUERY);
   const state = await widgetState();
   assert.equal(state.assemblyName, 'othergenome');
