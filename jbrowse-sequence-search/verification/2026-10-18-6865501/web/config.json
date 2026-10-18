@@ -1,0 +1,92 @@
+{
+  "plugins": [
+    {
+      "name": "GenomeSequenceSearch",
+      "url": "/plugins/jbrowse-sequence-search/0.1.1/jbrowse-sequence-search.js"
+    }
+  ],
+  "configuration": {
+    "disableAnalytics": true
+  },
+  "assemblies": [
+    {
+      "name": "testgenome",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "testgenome-reference",
+        "adapter": {
+          "type": "IndexedFastaAdapter",
+          "fastaLocation": {
+            "uri": "/data/testgenome.fa",
+            "locationType": "UriLocation"
+          },
+          "faiLocation": {
+            "uri": "/data/testgenome.fa.fai",
+            "locationType": "UriLocation"
+          }
+        }
+      }
+    },
+    {
+      "name": "othergenome",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "othergenome-reference",
+        "adapter": {
+          "type": "IndexedFastaAdapter",
+          "fastaLocation": {
+            "uri": "/data/othergenome.fa",
+            "locationType": "UriLocation"
+          },
+          "faiLocation": {
+            "uri": "/data/othergenome.fa.fai",
+            "locationType": "UriLocation"
+          }
+        }
+      }
+    },
+    {
+      "name": "slowgenome",
+      "sequence": {
+        "type": "ReferenceSequenceTrack",
+        "trackId": "slowgenome-reference",
+        "adapter": {
+          "type": "IndexedFastaAdapter",
+          "fastaLocation": {
+            "uri": "/data/slowgenome.fa",
+            "locationType": "UriLocation"
+          },
+          "faiLocation": {
+            "uri": "/data/slowgenome.fa.fai",
+            "locationType": "UriLocation"
+          }
+        }
+      }
+    }
+  ],
+  "tracks": [],
+  "defaultSession": {
+    "name": "Genome search test",
+    "views": [
+      {
+        "id": "viewTest",
+        "type": "LinearGenomeView",
+        "init": {
+          "assembly": "testgenome",
+          "loc": "ctgA:1-5000",
+          "tracks": [
+            "testgenome-reference"
+          ]
+        }
+      },
+      {
+        "id": "viewOther",
+        "type": "LinearGenomeView",
+        "init": {
+          "assembly": "othergenome",
+          "loc": "otherChr:1-2000"
+        }
+      }
+    ]
+  }
+}

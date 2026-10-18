@@ -111,9 +111,11 @@ an `https://` deployment on another host) and Desktop can load it. Notes:
 - When Pages is the host, plugin availability depends on GitHub. For Desktop
   this matters more, because a session whose plugin URL fails will not open.
   You can mirror the same folder on your own server and use that URL instead.
-- `releases/0.1.0/` holds exactly the build verified in
-  [`verification/2026-10-14-bca512d/`](verification/2026-10-14-bca512d/), with
-  the same checksums.
+- Each release folder holds exactly a verified build, with the same
+  checksums: `releases/0.1.1/` from
+  [`verification/2026-10-18-6865501/`](verification/2026-10-18-6865501/), and
+  `releases/0.1.0/` from
+  [`verification/2026-10-14-bca512d/`](verification/2026-10-14-bca512d/).
 
 ## JBrowse Web
 
